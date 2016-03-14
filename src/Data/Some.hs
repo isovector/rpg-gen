@@ -4,20 +4,21 @@ module Data.Some
     ( module Exports
     , Varying
     , Some
-    , pick
+    , some
     , constrain
     , specify
     , specifies
     ) where
 
-import Control.Applicative
-import Control.Monad
-import Math.Probable
-import Control.Monad.IO.Class
-
+import Control.Applicative hiding (some)
 import Control.Lens
+import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.Primitive (PrimBase)
+import Math.Probable
 
 import qualified Math.Probable as Exports hiding (RandT (..))
+import qualified System.Random.MWC as MWC
 
 type Varying m a = RandT m a
 type Some a = Varying IO a
@@ -43,7 +44,6 @@ specifies :: Monad m
           -> Varying m a
 specifies l c v = over l v <$> c
 
--- TODO(sandy): make this work for arbitrary Varying m
-pick :: MonadIO m => Varying IO a -> m a
-pick = liftIO . mwc
+some :: (MonadIO m, PrimBase m) => Varying m a -> m a
+some = liftIO . MWC.withSystemRandom . runRandT
 

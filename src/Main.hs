@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
-import Control.Applicative
+import Control.Applicative hiding (some)
 import Control.Monad
 import Data.Some
 
@@ -40,5 +40,5 @@ person =
            <*> uniformIn (500, 10000)
 
 main :: IO ()
-main = pick worldOld >>= print
+main = some worldOld >>= print
 
