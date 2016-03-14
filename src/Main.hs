@@ -31,12 +31,12 @@ worldYoung :: Some World
 worldYoung = constrain age world $ uniformIn (0, 500)
 
 worldOld :: Some World
-worldOld =  specifies age world (*10)
+worldOld = specifys age world (*10)
 
 person :: Some Person
 person =
     Person <$> uniformIn (1, 100)
-           <*> uniformIn (2, 130)
+           <*> uniformIn (20, 120)
            <*> uniformIn (500, 10000)
 
 main :: IO ()
