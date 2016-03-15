@@ -21,8 +21,7 @@ runWorldGenT gen = do
             , locKey n
             , map snd $ filter ((== locKey n) . fst) edges
             )
-        (worldGraph, getLocation', getVertex') =
-            graphFromEdges input
+        (worldGraph, getLocation', getVertex') = graphFromEdges input
     return (World { .. }, a)
 
 link :: Monad m => Loc -> Loc -> WorldGenT m ()

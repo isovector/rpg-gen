@@ -4,7 +4,8 @@ module Main where
 import Control.Applicative hiding (some)
 import Control.Monad
 import Data.Some
-import qualified Game.World as W
+import Game.World
+import Game.WorldGen
 
 import Control.Lens
 import Control.Lens.TH (makeLenses)
@@ -14,25 +15,13 @@ data Person = Person Int    -- ^ age
                      Double -- ^ salary (e.g euros)
     deriving (Eq, Show)
 
-data World = World
-    { _age :: Int
-    , _inhab :: Person
-    } deriving (Eq, Show)
-makeLenses ''World
-
-world :: Some World
-world =
-    World <$> uniformIn (0, 3000)
-          <*> person
-
-world2000 :: Some World
-world2000 = specify age world 2000
-
-worldYoung :: Some World
-worldYoung = constrain age world $ uniformIn (0, 500)
-
-worldOld :: Some World
-worldOld = specifys age world (*10)
+world :: IO World
+world = fmap fst . runWorldGenT $ do
+    loc1 <- newLocation
+    loc2 <- newLocation
+    loc3 <- newLocation
+    link loc1 loc2
+    link loc2 loc3
 
 person :: Some Person
 person =
@@ -41,5 +30,5 @@ person =
            <*> uniformIn (500, 10000)
 
 main :: IO ()
-main = some worldOld >>= print
+main = some person >>= print
 
