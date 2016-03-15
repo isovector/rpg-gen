@@ -4,6 +4,7 @@ module Main where
 import Control.Applicative hiding (some)
 import Control.Monad
 import Data.Some
+import qualified Game.World as W
 
 import Control.Lens
 import Control.Lens.TH (makeLenses)
