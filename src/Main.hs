@@ -1,9 +1,12 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
 import Preface
 
 import Debug.Trace
+import Control.Monad.Writer
 import Control.Arrow ((***))
 import FRP.Helm
 import FRP.Helm.Color (Color (), rgb)
@@ -21,6 +24,36 @@ data Player = Player
     , speed :: Double
     , color :: Color
     }
+
+data City = City
+    { roads :: [Road]
+    , buildings :: ()
+    }
+
+data Road = Road (Double, Double) (Double, Double) Color
+
+cityGen :: Some City
+cityGen = City <$> roadsGen <*> pure ()
+
+roadsGen :: Some [Road]
+roadsGen = do
+    width  <- uniformIn (100, 200)
+    height <- uniformIn (100, 200)
+    downCount :: Int <- uniformIn (2, 5)
+    rightCount :: Int <- uniformIn (2, 5)
+
+    return . snd . runWriter $ do
+        let perRight = width / (fromIntegral rightCount - 1)
+            perDown = height / (fromIntegral downCount - 1)
+            xShift = width / 2
+            yShift = height / 2
+        tell $ do
+            i <- [0 .. downCount - 1]
+            return $ Road (0, -yShift + fromIntegral i * perDown) (width, 10) grey
+        tell $ do
+            i <- [0 .. rightCount - 1]
+            return $ Road (-xShift + fromIntegral i * perRight, 0) (10, height) grey
+
 
 playerGen :: Some Player
 playerGen = Player
@@ -54,13 +87,25 @@ player = unsafePerformIO $ do
                       )
               }
 
-renderPlayer :: Player -> Form
-renderPlayer p = move (pos p) . filled (color p) $ rect 40 40
+drawCity :: City -> Form
+drawCity City{..} = group $ map drawRoad roads
+  where
+    drawRoad (Road pos size col) = move pos . filled col $ uncurry rect size
 
-render :: Player -> (Int, Int) -> Element
-render p dims = uncurry centeredCollage dims . return $ renderPlayer p
+
+drawPlayer :: Player -> Form
+drawPlayer p = filled (color p) $ rect 40 40
+
+draw :: Player -> City -> (Int, Int) -> Element
+draw p city dims = uncurry centeredCollage dims
+    [ move (join (***) negate $ pos p) $ drawCity city
+    , drawPlayer p
+    ]
+
+city :: Signal City
+city = pure . unsafePerformIO $ some cityGen
 
 main :: IO ()
-main = run config $ render <$> player <*> Window.dimensions
+main = run config $ draw <$> player <*> city <*> Window.dimensions
   where
     config = defaultConfig { windowTitle = "rpg-gen" }
