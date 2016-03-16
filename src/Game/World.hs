@@ -1,6 +1,7 @@
 module Game.World where
 
-import Control.Applicative ((<$>))
+import Preface
+
 import Control.Monad.IO.Class
 import Data.Graph
 import Data.IORef

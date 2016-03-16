@@ -9,9 +9,8 @@ module Data.Some
     , specifys
     ) where
 
-import Control.Applicative hiding (some)
-import Control.Lens
-import Control.Monad
+import Preface
+
 import Control.Monad.IO.Class
 import Math.Probable
 

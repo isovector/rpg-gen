@@ -8,7 +8,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/isovector/helm.git
-    commit: 9693990f3e5edb99f0a8dcb683824c3917c03ba5
+    commit: 3cf9e0ab5a9961e831d88da11537a7c2fb166834
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:

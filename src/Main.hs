@@ -1,15 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
+import Preface
+
 import FRP.Helm
-import FRP.Helm.Signal
-import FRP.Helm.Sample
 import qualified FRP.Helm.Time as Time
 import qualified FRP.Helm.Keyboard as Keyboard
 import qualified FRP.Helm.Window as Window
 
-import Control.Applicative hiding (some)
-import Control.Monad
 import Data.Some
 import Game.World
 import Game.WorldGen
