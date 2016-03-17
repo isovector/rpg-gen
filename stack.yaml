@@ -7,7 +7,7 @@ resolver: lts-5.2
 packages:
 - '.'
 - location:
-    git: https://github.com/isovector/helm.git
+    git: https://github.com/isovector/sequoiahs.git
     commit: 3cf9e0ab5a9961e831d88da11537a7c2fb166834
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
