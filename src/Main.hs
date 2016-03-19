@@ -8,10 +8,12 @@ import Preface
 import Debug.Trace
 import Data.List (sortBy)
 import Data.Ord (comparing)
+import Data.Maybe (isJust)
 import Control.Monad.Writer
 import Control.Arrow ((***))
 import FRP.Helm
 import FRP.Helm.Color (Color (), rgb)
+import FRP.Helm.Geometry (BB, blocks, tagged, sweepShape)
 import qualified FRP.Helm.Time as Time
 import qualified FRP.Helm.Keyboard as Keyboard
 import qualified FRP.Helm.Window as Window
@@ -34,8 +36,10 @@ data City = City
 
 data Road = Road (Double, Double) (Double, Double) Color
 
-type Prop = Prop' ()
-type Scene = Scene' ()
+data Block = Track | Wall deriving Eq
+
+type Prop = Prop' Block
+type Scene = Scene' Block
 
 
 cityGen :: Some City
@@ -72,7 +76,10 @@ treeGen = do
     width <- uniformIn (10, 30)
     heightMod <- uniformIn (1.5, 3)
     let height = width * heightMod
-    return . filled color $ polygon [(0, -height), (width / 2, 0), (-width / 2, 0)]
+    return . group $
+        [ filled color $ polygon [(0, -height), (width / 2, 0), (-width / 2, 0)]
+        , move (0, -height / 2) $ block Wall width height
+        ]
 
 roadsGen :: Double -> Double -> Some [Road]
 roadsGen width height = do
@@ -117,16 +124,24 @@ normalize v@(x, y) =
 player :: Signal Player
 player = unsafePerformIO $ do
     myPlayer <- some playerGen
-    return . foldp update myPlayer $ (,) <$> Time.elapsed <*> Keyboard.arrows
+    return . foldp update myPlayer $ (,,) <$> collisionMap
+                                          <*> Time.elapsed
+                                          <*> Keyboard.arrows
   where
-    update (dt, dpos) p =
-        let (x, y)   = pos p
-            (dx, dy) = normalize $ join (***) fromIntegral dpos
+    update (bbs, dt, dpos) p =
+        let here     = safeHead $ tagged bbs Track
+            walls    = tagged bbs Wall
             s        = speed p
-         in p { pos = ( x + dx * s * dt
-                      , y + dy * s * dt
-                      )
-              }
+            rel@(dx, dy) = let (dx', dy') = normalize $
+                                    join (***) fromIntegral dpos
+                            in (dx' * s * dt, dy' * s * dt)
+            collides = isJust $ sweepShape walls here rel
+            (x, y)   = pos p
+         in if collides
+               then p
+               else p { pos = ( x + dx
+                              , y + dy
+                              )}
 
 drawCity :: City -> Prop
 drawCity City{..} = group $ map drawRoad roads ++ surroundings
@@ -135,7 +150,9 @@ drawCity City{..} = group $ map drawRoad roads ++ surroundings
 
 
 drawPlayer :: Player -> Prop
-drawPlayer p = filled (color p) $ rect 40 40
+drawPlayer p = group [ filled (color p) $ rect 40 40
+                     , block Track 40 40
+                     ]
 
 draw :: Player -> City -> (Int, Int) -> Scene
 draw p city dims = uncurry centeredCollage dims
@@ -146,7 +163,13 @@ draw p city dims = uncurry centeredCollage dims
 city :: Signal City
 city = pure . unsafePerformIO $ some cityGen
 
+gameScene :: Signal Scene
+gameScene = draw <$> player <*> city <*> Window.dimensions
+
+collisionMap :: Signal [BB Block]
+collisionMap = delay [] 1 $ blocks <$> gameScene
+
 main :: IO ()
-main = run config $ draw <$> player <*> city <*> Window.dimensions
+main = run config gameScene
   where
     config = defaultConfig { windowTitle = "rpg-gen" }
