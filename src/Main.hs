@@ -21,6 +21,7 @@ import qualified Game.Sequoia.Keyboard as Keyboard
 import qualified Game.Sequoia.Window as Window
 
 import Data.Some
+import Game.Combinators
 import Game.World
 import Game.WorldGen
 
@@ -32,10 +33,6 @@ data Player = Player
 data City = City
     { surroundings :: [Prop]
     }
-
-data Block = Track | Wall deriving (Eq, Show)
-
-type Prop = Prop' Block
 
 
 cityGen :: Some City
@@ -107,13 +104,15 @@ player = unsafePerformIO $ do
   where
     update (walls, dt, dir) (Player p s) =
         let dpos = flip scaleRel dir $ dt * s
-         in flip Player s $ tryMove walls p dpos
+         in flip Player s $ move dpos p
 
-draw :: Player -> City -> [Prop]
-draw p city = prop p : surroundings city
+draw :: Player -> [Prop] -> [Prop]
+draw p city = prop p : city
 
-city :: Signal City
-city = pure . unsafePerformIO $ pick cityGen
+city :: Signal [Prop]
+city = unsafePerformIO $ do
+    s <- surroundings <$> pick cityGen
+    return $ eraser (pure s) (const True) (prop <$> player)
 
 gameScene :: Signal [Prop]
 gameScene = draw <$> player <*> city

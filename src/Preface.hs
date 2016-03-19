@@ -1,13 +1,17 @@
 module Preface
-    ( module Applicative
+    ( module Control.Applicative
     , module Control.Lens
     , module Control.Monad
-    , module Game.Sequoia.Signal
+    , module Game.Sequoia
+    , Block (..)
+    , Prop
     ) where
 
-import qualified Control.Applicative as Applicative hiding (some)
-
+import Control.Applicative
 import Control.Lens
 import Control.Monad
-import Game.Sequoia.Signal
+import Game.Sequoia
+
+data Block = Track | Wall deriving (Eq, Show)
+type Prop = Prop' Block
 
