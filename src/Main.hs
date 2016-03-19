@@ -6,47 +6,43 @@ module Main where
 import Preface
 
 import Debug.Trace
-import Data.List (sortBy)
-import Data.Ord (comparing)
-import Data.Maybe (isJust)
-import Control.Monad.Writer
+
 import Control.Arrow ((***))
-import FRP.Helm
-import FRP.Helm.Color (Color (), rgb)
-import FRP.Helm.Geometry (BB, blocks, tagged, sweepShape)
-import qualified FRP.Helm.Time as Time
-import qualified FRP.Helm.Keyboard as Keyboard
-import qualified FRP.Helm.Window as Window
+import Control.Monad.Writer
+import Data.List (sortBy)
+import Data.Maybe (isJust)
+import Data.Ord (comparing)
+import Game.Sequoia
+import Game.Sequoia.Color (Color (), rgb, grey)
+import Game.Sequoia.Geometry (sweepProp, tryMove)
+import Game.Sequoia.Utils
 import System.IO.Unsafe (unsafePerformIO)
+import qualified Game.Sequoia.Keyboard as Keyboard
+import qualified Game.Sequoia.Window as Window
 
 import Data.Some
 import Game.World
 import Game.WorldGen
 
 data Player = Player
-    { pos :: (Double, Double)
+    { prop :: Prop
     , speed :: Double
-    , color :: Color
     }
 
 data City = City
-    { roads :: [Road]
-    , surroundings :: [Prop]
+    { surroundings :: [Prop]
     }
 
-data Road = Road (Double, Double) (Double, Double) Color
-
-data Block = Track | Wall deriving Eq
+data Block = Track | Wall deriving (Eq, Show)
 
 type Prop = Prop' Block
-type Scene = Scene' Block
 
 
 cityGen :: Some City
 cityGen = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
-    City <$> roadsGen width height <*> surroundingsGen width height
+    City <$> surroundingsGen width height
 
 
 surroundingsGen :: Double -> Double -> Some [Prop]
@@ -68,7 +64,10 @@ surroundingsGen width' height' = do
             if yoffset' == 0
                then (subtract $ height/2) <$> uniformIn (0, height)
                else uniformIn (-50, 50)
-        return $ move (xoffset + xspread, yoffset + yspread) tree
+        return $ move (mkRel (xoffset + xspread) (yoffset + yspread)) tree
+
+showTag :: Prop -> Prop
+showTag = trace =<< show . getTag
 
 treeGen :: Some Prop
 treeGen = do
@@ -76,42 +75,20 @@ treeGen = do
     width <- uniformIn (10, 30)
     heightMod <- uniformIn (1.5, 3)
     let height = width * heightMod
-    return . group $
-        [ filled color $ polygon [(0, -height), (width / 2, 0), (-width / 2, 0)]
-        , move (0, -height / 2) $ block Wall width height
-        ]
-
-roadsGen :: Double -> Double -> Some [Road]
-roadsGen width height = do
-    downCount :: Int <- uniformIn (2, 5)
-    rightCount :: Int <- uniformIn (2, 5)
-    downRandom <- listOf downCount $ uniformIn (-15, 15)
-    rightRandom <- listOf rightCount $ uniformIn (-15, 15)
-
-    let perRight = width / (fromIntegral rightCount + 1)
-        perDown = height / (fromIntegral downCount + 1)
-        xShift = width / 2
-        yShift = height / 2
-
-    return . snd . runWriter $ do
-        let getPos shift i per rand = -shift + fromIntegral i * per + rand !! (i - 1)
-        tell $ do
-            i <- [1 .. downCount]
-            return $ Road (0, getPos yShift i perDown downRandom) (width, 10) grey
-        tell $ do
-            i <- [1 .. rightCount]
-            return $ Road (getPos xShift i perRight rightRandom, 0) (10, height) grey
-
+    return . tag Wall
+           . filled color
+           $ polygon origin [ mkRel 0 (-height / 2)
+                            , mkRel  (width / 2) (height / 2)
+                            , mkRel (-width / 2) (height / 2)
+                            ]
 
 playerGen :: Some Player
-playerGen = Player
-    <$> pure (0, 0)
-    <*> pure 300
-    <*> (rgb
-        <$> uniformIn (0, 1)
-        <*> uniformIn (0, 1)
-        <*> uniformIn (0, 1)
-        )
+playerGen = do
+    color <- rgb <$> uniformIn (0, 1)
+                 <*> uniformIn (0, 1)
+                 <*> uniformIn (0, 1)
+    let form = filled color $ rect origin 20 20
+    return $ Player form 300
 
 normalize :: (Floating a, Eq a, Show a) => (a, a) -> (a, a)
 normalize v@(x, y) =
@@ -123,53 +100,28 @@ normalize v@(x, y) =
 
 player :: Signal Player
 player = unsafePerformIO $ do
-    myPlayer <- some playerGen
+    myPlayer <- pick playerGen
     return . foldp update myPlayer $ (,,) <$> collisionMap
-                                          <*> Time.elapsed
+                                          <*> elapsed
                                           <*> Keyboard.arrows
   where
-    update (bbs, dt, dpos) p =
-        let here     = safeHead $ tagged bbs Track
-            walls    = tagged bbs Wall
-            s        = speed p
-            rel@(dx, dy) = let (dx', dy') = normalize $
-                                    join (***) fromIntegral dpos
-                            in (dx' * s * dt, dy' * s * dt)
-            collides = isJust $ sweepShape walls here rel
-            (x, y)   = pos p
-         in if collides
-               then p
-               else p { pos = ( x + dx
-                              , y + dy
-                              )}
+    update (walls, dt, dir) (Player p s) =
+        let dpos = flip scaleRel dir $ dt * s
+         in flip Player s $ tryMove walls p dpos
 
-drawCity :: City -> Prop
-drawCity City{..} = group $ map drawRoad roads ++ surroundings
-  where
-    drawRoad (Road pos size col) = move pos . filled col $ uncurry rect size
-
-
-drawPlayer :: Player -> Prop
-drawPlayer p = group [ filled (color p) $ rect 40 40
-                     , block Track 40 40
-                     ]
-
-draw :: Player -> City -> (Int, Int) -> Scene
-draw p city dims = uncurry centeredCollage dims
-    [ move (join (***) negate $ pos p) $ drawCity city
-    , drawPlayer p
-    ]
+draw :: Player -> City -> [Prop]
+draw p city = prop p : surroundings city
 
 city :: Signal City
-city = pure . unsafePerformIO $ some cityGen
+city = pure . unsafePerformIO $ pick cityGen
 
-gameScene :: Signal Scene
-gameScene = draw <$> player <*> city <*> Window.dimensions
+gameScene :: Signal [Prop]
+gameScene = draw <$> player <*> city
 
-collisionMap :: Signal [BB Block]
-collisionMap = delay [] 1 $ blocks <$> gameScene
+collisionMap :: Signal [Prop]
+collisionMap = delay [] 1 $ filter (maybe False (== Wall) . getTag) <$>  gameScene
 
 main :: IO ()
-main = run config gameScene
+main = run config $ map (move (mkRel 320 240)) <$> gameScene
   where
-    config = defaultConfig { windowTitle = "rpg-gen" }
+    config = EngineConfig { windowTitle = "rpg-gen", windowDimensions = (640, 480) }

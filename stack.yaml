@@ -7,15 +7,15 @@ resolver: lts-5.2
 packages:
 - '.'
 - location:
-    git: https://github.com/isovector/sequoiahs.git
-    commit: 189f3e4df5d37c5698b28cb53e778d7a62f5be12
+    git: https://github.com/isovector/sequoia.git
+    commit: c3f39c286c3210efb402288d315c5f65189324e8
 - location:
     git: https://github.com/isovector/SG.git
     commit: 22d733e62b085209979d4dc05d8e6e94d4cb1a8d
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
-    - 'probable-0.1.1'
+    - probable-0.1.1
     - sdl2-1.2.0
 
 # Override default flag values for local packages and extra-deps

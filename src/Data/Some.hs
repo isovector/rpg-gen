@@ -3,7 +3,7 @@
 module Data.Some
     ( module Exports
     , Some
-    , some
+    , pick
     , constrain
     , specify
     , specifys
@@ -37,7 +37,7 @@ specifys :: Lens a a v v
          -> Some a
 specifys l c v = over l v <$> c
 
-some :: MonadIO m => Some a -> m a
-some = let sysRandom = MWC.createSystemRandom
+pick :: MonadIO m => Some a -> m a
+pick = let sysRandom = MWC.createSystemRandom
         in liftIO . (sysRandom >>=) . runRandT
 
