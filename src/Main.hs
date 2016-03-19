@@ -29,10 +29,14 @@ data Player = Player
 
 data City = City
     { roads :: [Road]
-    , surroundings :: [Form]
+    , surroundings :: [Prop]
     }
 
 data Road = Road (Double, Double) (Double, Double) Color
+
+type Prop = Prop' ()
+type Scene = Scene' ()
+
 
 cityGen :: Some City
 cityGen = do
@@ -41,7 +45,7 @@ cityGen = do
     City <$> roadsGen width height <*> surroundingsGen width height
 
 
-surroundingsGen :: Double -> Double -> Some [Form]
+surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
     let width = width' * 2
         height = height' * 2
@@ -62,7 +66,7 @@ surroundingsGen width' height' = do
                else uniformIn (-50, 50)
         return $ move (xoffset + xspread, yoffset + yspread) tree
 
-treeGen :: Some Form
+treeGen :: Some Prop
 treeGen = do
     color <- rgb <$> uniformIn (0.2, 0.4) <*> uniformIn (0.5, 1.0) <*> uniformIn (0, 0.3)
     width <- uniformIn (10, 30)
@@ -124,16 +128,16 @@ player = unsafePerformIO $ do
                       )
               }
 
-drawCity :: City -> Form
+drawCity :: City -> Prop
 drawCity City{..} = group $ map drawRoad roads ++ surroundings
   where
     drawRoad (Road pos size col) = move pos . filled col $ uncurry rect size
 
 
-drawPlayer :: Player -> Form
+drawPlayer :: Player -> Prop
 drawPlayer p = filled (color p) $ rect 40 40
 
-draw :: Player -> City -> (Int, Int) -> Element
+draw :: Player -> City -> (Int, Int) -> Scene
 draw p city dims = uncurry centeredCollage dims
     [ move (join (***) negate $ pos p) $ drawCity city
     , drawPlayer p
