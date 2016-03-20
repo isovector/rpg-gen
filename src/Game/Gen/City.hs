@@ -25,7 +25,7 @@ interactiveGen :: Some Prop
 interactiveGen = do
     x <- uniformIn (-100, 100)
     y <- uniformIn (-100, 100)
-    return . tag (Interactive 1)
+    return . tags (interaction .~ (Just $ Teleport 1 origin))
            . filled red
            $ rect (mkPos x y) 40 40
 
@@ -62,7 +62,7 @@ treeGen = do
     width <- uniformIn (10, 30)
     heightMod <- uniformIn (1.5, 3)
     let height = width * heightMod
-    return . tag Wall
+    return . tags (hasCollision .~ True)
            . filled color
            $ polygon origin [ mkRel 0 (-height / 2)
                             , mkRel  (width / 2) (height / 2)

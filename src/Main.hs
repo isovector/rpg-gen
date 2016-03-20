@@ -38,14 +38,17 @@ interactions :: Signal [Int]
 interactions =
     delay [] 1 $
         ( \ps p ->
-          map (maybe undefined (\(Interactive s) -> s) . getTag)
-        . filter (maybe False isInteractive . getTag)
+          map ( maybe undefined (\(Teleport s _) -> s)
+              . view interaction
+              . getTag
+              )
+        . filter (hasInteraction . getTag)
         $ overlapping ps p
         ) <$> scene <*> fmap prop player
 
 collisionMap :: Signal [Prop]
 collisionMap = delay [] 1 $
-    filter (maybe False (== Wall) . getTag) <$> scene
+    filter (view hasCollision . getTag) <$> scene
 
 main :: IO ()
 main = do
