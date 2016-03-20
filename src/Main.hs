@@ -121,6 +121,6 @@ collisionMap :: Signal [Prop]
 collisionMap = delay [] 1 $ filter (maybe False (== Wall) . getTag) <$>  gameScene
 
 main :: IO ()
-main = run config $ map (move (mkRel 320 240)) <$> gameScene
+main = run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen", windowDimensions = (640, 480) }
