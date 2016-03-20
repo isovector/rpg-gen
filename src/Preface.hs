@@ -13,7 +13,7 @@ import Control.Lens
 import Control.Monad
 import Game.Sequoia
 
-data Block = Interactive String
+data Block = Interactive Int
            | Wall
            deriving (Eq, Show)
 type Prop = Prop' Block

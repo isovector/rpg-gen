@@ -5,7 +5,6 @@ module Main where
 
 import Preface
 
-import Debug.Trace
 import Game.Gen
 import Game.Gen.City
 import Game.Gen.Player
@@ -25,33 +24,36 @@ player = picking playerGen $ \myPlayer ->
         <*> isDown SpaceKey
   where
     update (walls, ints, dt, dir, active) player@(Player p s) =
-        if active
-           then trace (concat ints) player
+        if active && (not $ null ints)
+           then mailing changeScene (head ints) . flip Player s $
+                    teleport origin p
            else let dpos = flip scaleRel dir $ dt * s
                  in flip Player s $ tryMove walls p dpos
 
-city :: Signal [Prop]
-city = picking cityGen $ pure . surroundings
-
 gameScene :: Signal [Prop]
 gameScene = (liftM2 (.) focusing (:)) <$> fmap prop player
-                                      <*> city
+                                      <*> scene
 
-interactions :: Signal [String]
+interactions :: Signal [Int]
 interactions =
     delay [] 1 $
         ( \ps p ->
           map (maybe undefined (\(Interactive s) -> s) . getTag)
         . filter (maybe False isInteractive . getTag)
         $ overlapping ps p
-        ) <$> city <*> fmap prop player
+        ) <$> scene <*> fmap prop player
 
 collisionMap :: Signal [Prop]
 collisionMap = delay [] 1 $
-    filter (maybe False (== Wall) . getTag) <$> city
+    filter (maybe False (== Wall) . getTag) <$> scene
 
 main :: IO ()
-main = run config gameScene
+main = do
+    city1 <- surroundings <$> pick cityGen
+    city2 <- surroundings <$> pick cityGen
+    mail' addScene . return $ return city1
+    mail' addScene . return $ return city2
+    run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)

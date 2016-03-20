@@ -2,7 +2,7 @@ module Game.Scene
     ( Scene
     , changeScene
     , addScene
-    , scenes
+    , scene
     ) where
 
 import Preface
@@ -16,10 +16,10 @@ whichScene  :: Signal  Scene
 changeScene :: Address Scene
 (whichScene, changeScene) = unsafePerformIO $ mailbox 0
 
-scenes   :: Signal  [[Prop]]
-addScene :: Address [[Prop]]
-(scenes, addScene) = unsafePerformIO $ mailbox []
+scenes   :: Signal  [Signal [Prop]]
+addScene :: Address [Signal [Prop]]
+(scenes, addScene) = unsafePerformIO $ mailboxs (++) []
 
 scene :: Signal [Prop]
-scene = (!!) <$> scenes <*> whichScene
+scene = join $ (!!) <$> scenes <*> whichScene
 

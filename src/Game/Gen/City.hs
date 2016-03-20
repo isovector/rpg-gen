@@ -25,7 +25,7 @@ interactiveGen :: Some Prop
 interactiveGen = do
     x <- uniformIn (-100, 100)
     y <- uniformIn (-100, 100)
-    return . tag (Interactive "hello")
+    return . tag (Interactive 1)
            . filled red
            $ rect (mkPos x y) 40 40
 
