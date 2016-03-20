@@ -17,8 +17,10 @@ cityGen :: Prop -> Some City
 cityGen p = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
-    ((City .) . flip (:)) <$> surroundingsGen width height
-                          <*> pure p
+    surroundings <- surroundingsGen width height
+    pdx <- (/ 1.5) <$> uniformIn (-width, width)
+    pdy <- (/ 1.5) <$> uniformIn (-height, height)
+    return . City $ move (mkRel pdx pdy) p : surroundings
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do

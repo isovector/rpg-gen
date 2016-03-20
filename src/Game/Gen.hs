@@ -37,5 +37,5 @@ teleportTo ls l i p = maybe p id $ do
 portalGen :: Some Prop
 portalGen = do
     idkey <- Just <$> int
-    return . tags (ident .~ idkey) . filled violet $ rect origin 40 40
+    return . tags (ident .~ idkey) . traced yellow $ rect origin 40 40
 
