@@ -114,13 +114,22 @@ city = unsafePerformIO $ do
     s <- surroundings <$> pick cityGen
     return $ eraser (pure s) (const True) (prop <$> player)
 
+-- TODO(sandy): migrate this to engine
+focusing :: Prop -> Rel
+focusing p = posDif origin $ center p
+
 gameScene :: Signal [Prop]
-gameScene = draw <$> player <*> city
+gameScene = draw' <$> player <*> city
+   where
+     draw' p c =
+         let rel = focusing $ prop p
+          in map (move rel) $ draw p c
 
 collisionMap :: Signal [Prop]
-collisionMap = delay [] 1 $ filter (maybe False (== Wall) . getTag) <$>  gameScene
+collisionMap = delay [] 1 $ filter (maybe False (== Wall) . getTag) <$> gameScene
 
 main :: IO ()
 main = run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen", windowDimensions = (640, 480) }
+

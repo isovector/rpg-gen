@@ -9,6 +9,7 @@ import Data.List (nub)
 import Game.Sequoia
 import Game.Sequoia.Utils
 
+-- TODO(sandy): migrate this to library
 eraser :: Signal [Prop] -> (Prop -> Bool) -> Signal Prop -> Signal [Prop]
 eraser sps f sdozer =
     let remSig = foldp doze [] ((,) <$> sps <*> sdozer)
