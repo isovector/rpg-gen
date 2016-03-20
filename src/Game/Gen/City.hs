@@ -26,8 +26,9 @@ surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
     let width = width' * 2
         height = height' * 2
+    obstacleGen <- uniformly [treeGen, rockGen]
     numTrees <- uniformIn (50, 150)
-    trees <- listOf numTrees treeGen
+    trees <- listOf numTrees obstacleGen
 
     forM trees $ \tree -> do
         (xoffset', yoffset') <- uniformly [ (-1,  0)
@@ -46,6 +47,16 @@ surroundingsGen width' height' = do
                then (subtract $ height/2) <$> uniformIn (0, height)
                else uniformIn (-50, 50)
         return $ move (mkRel (xoffset + xspread) (yoffset + yspread)) tree
+
+rockGen :: Some Prop
+rockGen = do
+    color <- rgb <$> uniformIn (0.3, 0.8)
+                 <*> uniformIn (0, 0.3)
+                 <*> uniformIn (0.3, 1)
+    radius <- uniformIn (10, 30)
+    return . tags (hasCollision .~ True)
+           . filled color
+           $ circle origin radius
 
 treeGen :: Some Prop
 treeGen = do
