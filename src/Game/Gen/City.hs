@@ -7,7 +7,7 @@ import Preface
 
 import Data.Some
 import Game.Sequoia
-import Game.Sequoia.Color (rgb)
+import Game.Sequoia.Color (rgb, red)
 
 data City = City
     { surroundings :: [Prop]
@@ -17,7 +17,17 @@ cityGen :: Some City
 cityGen = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
-    City <$> surroundingsGen width height
+    interaction <- interactiveGen
+    (\x y -> City  (y : x)) <$> surroundingsGen width height
+                            <*> pure interaction
+
+interactiveGen :: Some Prop
+interactiveGen = do
+    x <- uniformIn (-100, 100)
+    y <- uniformIn (-100, 100)
+    return . tag (Interactive "hello")
+           . filled red
+           $ rect (mkPos x y) 40 40
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do

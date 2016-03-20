@@ -5,6 +5,7 @@ module Preface
     , module Game.Sequoia
     , Block (..)
     , Prop
+    , isInteractive
     ) where
 
 import Control.Applicative
@@ -12,6 +13,12 @@ import Control.Lens
 import Control.Monad
 import Game.Sequoia
 
-data Block = Track | Wall deriving (Eq, Show)
+data Block = Interactive String
+           | Wall
+           deriving (Eq, Show)
 type Prop = Prop' Block
+
+isInteractive :: Block -> Bool
+isInteractive (Interactive _) = True
+isInteractive _ = False
 
