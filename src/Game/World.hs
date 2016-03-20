@@ -1,4 +1,7 @@
-module Game.World where
+module Game.World
+    ( LocKey
+    , nextLocKey
+    ) where
 
 import Preface
 

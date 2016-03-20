@@ -21,7 +21,7 @@ player = picking playerGen $ \myPlayer ->
         <*> interactions
         <*> elapsed
         <*> arrows
-        <*> isDown SpaceKey
+        <*> keyPress SpaceKey
   where
     update (walls, ints, dt, dir, active) player@(Player p s) =
         if active && (not $ null ints)
