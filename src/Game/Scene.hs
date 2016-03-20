@@ -12,11 +12,11 @@ import System.IO.Unsafe (unsafePerformIO)
 
 type Scene = Int
 
-whichScene  :: Signal Scene
+whichScene  :: Signal  Scene
 changeScene :: Address Scene
 (whichScene, changeScene) = unsafePerformIO $ mailbox 0
 
-scenes :: Signal [[Prop]]
+scenes   :: Signal  [[Prop]]
 addScene :: Address [[Prop]]
 (scenes, addScene) = unsafePerformIO $ mailbox []
 
