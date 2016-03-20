@@ -13,21 +13,12 @@ data City = City
     { surroundings :: [Prop]
     }
 
-cityGen :: Some City
-cityGen = do
+cityGen :: Prop -> Some City
+cityGen p = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
-    interaction <- interactiveGen
-    (\x y -> City  (y : x)) <$> surroundingsGen width height
-                            <*> pure interaction
-
-interactiveGen :: Some Prop
-interactiveGen = do
-    x <- uniformIn (-100, 100)
-    y <- uniformIn (-100, 100)
-    return . tags (interaction .~ (Just $ Teleport 1 origin))
-           . filled red
-           $ rect (mkPos x y) 40 40
+    ((City .) . flip (:)) <$> surroundingsGen width height
+                          <*> pure p
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do

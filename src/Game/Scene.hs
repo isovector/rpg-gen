@@ -1,25 +1,31 @@
 module Game.Scene
-    ( Scene
-    , changeScene
+    ( changeScene
+    , currentLoc
     , addScene
     , scene
+    , scenes
     ) where
 
 import Preface
 
 import Game.Sequoia
 import System.IO.Unsafe (unsafePerformIO)
+import Data.Map (Map (..))
+import qualified Data.Map as M
+import qualified Data.Traversable as T
 
-type Scene = Int
+currentLoc  :: Signal  LocKey
+changeScene :: Address LocKey
+(currentLoc, changeScene) = unsafePerformIO $ mailbox 0
 
-whichScene  :: Signal  Scene
-changeScene :: Address Scene
-(whichScene, changeScene) = unsafePerformIO $ mailbox 0
-
-scenes   :: Signal  [Signal [Prop]]
-addScene :: Address [Signal [Prop]]
-(scenes, addScene) = unsafePerformIO $ mailboxs (++) []
+allScenes :: Signal  (Map LocKey (Signal [Prop]))
+addScene  :: Address (Map LocKey (Signal [Prop]))
+(allScenes, addScene) = unsafePerformIO $ mailboxs mappend M.empty
 
 scene :: Signal [Prop]
-scene = join $ (!!) <$> scenes <*> whichScene
+scene = join $ (M.!) <$> allScenes <*> currentLoc
+
+scenes :: Signal (Map LocKey [Prop])
+scenes = effectful $ \i ->
+    T.mapM (sampleAt i) =<< runSignal allScenes i
 

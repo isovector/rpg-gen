@@ -3,8 +3,6 @@ module Game.World
     , nextLocKey
     ) where
 
-import Preface
-
 import Control.Monad.IO.Class
 import Data.Graph
 import Data.IORef
