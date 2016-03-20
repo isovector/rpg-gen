@@ -12,8 +12,10 @@ import Control.Monad.Writer
 import Data.List (sortBy)
 import Data.Maybe (isJust)
 import Data.Ord (comparing)
+import Game.Scene
 import Game.Sequoia
 import Game.Sequoia.Color (Color (), rgb, grey)
+import Game.Sequoia.Combinators
 import Game.Sequoia.Geometry (sweepProp, tryMove)
 import Game.Sequoia.Utils
 import System.IO.Unsafe (unsafePerformIO)
@@ -21,7 +23,6 @@ import qualified Game.Sequoia.Keyboard as Keyboard
 import qualified Game.Sequoia.Window as Window
 
 import Data.Some
-import Game.Combinators
 import Game.World
 import Game.WorldGen
 
@@ -114,16 +115,10 @@ city = unsafePerformIO $ do
     s <- surroundings <$> pick cityGen
     return $ eraser (pure s) (const True) (prop <$> player)
 
--- TODO(sandy): migrate this to engine
-focusing :: Prop -> Rel
-focusing p = posDif origin $ center p
-
 gameScene :: Signal [Prop]
-gameScene = draw' <$> player <*> city
+gameScene = focus <$> player <*> city
    where
-     draw' p c =
-         let rel = focusing $ prop p
-          in map (move rel) $ draw p c
+     focus p c = focusing (prop p) $ draw p c
 
 collisionMap :: Signal [Prop]
 collisionMap = delay [] 1 $ filter (maybe False (== Wall) . getTag) <$> gameScene
