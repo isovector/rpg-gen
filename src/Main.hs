@@ -34,21 +34,25 @@ player = picking playerGen $ \myPlayer ->
                 let dpos = flip scaleRel dir $ dt * s
                  in flip Player s $ tryMove walls p dpos
 
+playerProp :: Signal Prop
+playerProp = fmap prop player
+
 gameScene :: Signal [Prop]
-gameScene = (liftM2 (.) focusing (:)) <$> fmap prop player
-                                      <*> scene
+gameScene = do
+    ps <- scene
+    p  <- playerProp
+    return $ focusing p ps
 
 interactions :: Signal [(LocKey, Int)]
 interactions =
-    delay [] 1 $
-        ( \ps p ->
-          map ( maybe undefined (\(Teleport s i) -> (s, i))
-              . view interaction
-              . getTag
-              )
-        . filter (hasInteraction . getTag)
-        $ overlapping ps p
-        ) <$> scene <*> fmap prop player
+    delay [] 1 $ do
+        ps <- scene
+        p  <- playerProp
+        return . map (maybe undefined $ \(Teleport s i) -> (s, i))
+               . map (view interaction)
+               . filter hasInteraction
+               . map getTag
+               $ overlapping ps p
 
 collisionMap :: Signal [Prop]
 collisionMap = delay [] 1 $
