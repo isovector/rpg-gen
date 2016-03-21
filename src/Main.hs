@@ -3,16 +3,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
-import Preface
-
-import Game.Gen
-import Game.Gen.City
-import Game.Gen.Player
-import Game.Scene
-import Game.Sequoia
-import Game.Sequoia.Combinators
-import Game.Sequoia.Geometry (tryMove)
+import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
+import RPG.Core
+import RPG.Data.Gen.City
+import RPG.Data.Gen.Player
+import RPG.Data.Gen.Portal
+import RPG.Logic.Scene
 import qualified Data.Map as M
 
 player :: Signal Player
@@ -41,9 +38,9 @@ gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
     p  <- playerProp
-    return $ focusing p ps
+    return . focusing p $ ps ++ [p]
 
-interactions :: Signal [(LocKey, Int)]
+interactions :: Signal [(Loc, Int)]
 interactions =
     delay [] 1 $ do
         ps <- scene

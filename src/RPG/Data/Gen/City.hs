@@ -1,12 +1,9 @@
-module Game.Gen.City
+module RPG.Data.Gen.City
     ( City (..)
     , cityGen
     ) where
 
-import Preface
-
-import Data.Some
-import Game.Sequoia
+import RPG.Core
 import Game.Sequoia.Color (rgb, red)
 
 data City = City

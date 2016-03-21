@@ -4,16 +4,16 @@ module Data.Some
     ( module Exports
     , Some
     , pick
+    , picking
     , constrain
     , specify
     , specifys
     ) where
 
-import Preface
-
+import Control.Lens
 import Control.Monad.IO.Class
 import Math.Probable
-
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Math.Probable as Exports hiding (RandT (..))
 import qualified System.Random.MWC as MWC
 
@@ -40,4 +40,7 @@ specifys l c v = over l v <$> c
 pick :: MonadIO m => Some a -> m a
 pick = let sysRandom = MWC.createSystemRandom
         in liftIO . (sysRandom >>=) . runRandT
+
+picking :: Some a -> (a -> b) -> b
+picking sa f = f . unsafePerformIO $ pick sa
 

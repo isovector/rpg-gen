@@ -1,13 +1,9 @@
-module Game.Gen.Player
+module RPG.Data.Gen.Player
     ( Player (..)
     , playerGen
     ) where
 
-import Preface
-
-import Data.Some
-import Game.Sequoia
-import Game.Sequoia.Color (rgb)
+import RPG.Core
 
 data Player = Player
     { prop :: Prop
