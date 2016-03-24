@@ -1,39 +1,66 @@
-{-# OPTIONS_GHC -fno-full-laziness #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.QuickTime
-    ( startQuickTime
+    ( start
+    , setState
+    , finish
     , fireball
-    , quickTime
+    , quicktime
     ) where
 
+import Control.Lens
+import Control.Lens.TH
 import RPG.Core
 import Game.Sequoia.Keyboard
 import Control.Monad.IO.Class (liftIO)
 import System.IO.Unsafe (unsafePerformIO)
 
-{-# NOINLINE state #-}
-{-# NOINLINE stateAddr #-}
-{-# NOINLINE fireballCount #-}
-{-# NOINLINE fireballAddr #-}
-
-quickTime :: Signal QuickTime
-(quickTime, quickTimeAddr) = newMailbox "quicktime" fireball
-(state, stateAddr) = newMailbox "state" 0
-(startTime, startTimeAddr) = newMailbox "start-time" 0
-(stateTime, stateTimeAddr) = newMailbox "end-time" 0
-
 type QuickTime = Signal [Prop]
 
-startQuickTime :: QuickTime -> Signal ()
-startQuickTime qt = do
-    setState 0
-    mail quickTimeAddr $ const qt
-    mail startTimeAddr . const =<< time
+data StackFrame = StackFrame
+    { _sfEvent :: QuickTime
+    , _sfState :: Int
+    , _sfStartTime :: Time
+    , _sfStateTime :: Time
+    }
+$(makeLenses ''StackFrame)
+
+
+stateMachine :: Signal [StackFrame]
+(stateMachine, stateMachineAddr) = newMailbox "state machine" []
+
+currentStack :: Signal StackFrame
+currentStack = fmap head stateMachine
+
+quicktime :: Signal QuickTime
+quicktime = view sfEvent <$> currentStack
+
+state :: Signal Int
+state = view sfState <$> currentStack
+
+startTime :: Signal Time
+startTime = view sfStartTime <$> currentStack
+
+stateTime :: Signal Time
+stateTime = view sfStateTime <$> currentStack
+
+headLens :: Lens' [a] a
+headLens = lens head (\as a -> a : tail as)
 
 setState :: Int -> Signal ()
 setState s = do
-    mail stateAddr $ const s
-    mail stateTimeAddr . const =<< time
+    now <- time
+    mail stateMachineAddr
+        $ (headLens.sfStateTime .~ now)
+        . (headLens.sfState .~ s)
+
+start :: QuickTime -> Signal ()
+start qt = do
+    now <- time
+    mail stateMachineAddr (StackFrame qt 0 now now :)
+
+finish :: Signal ()
+finish = mail stateMachineAddr tail
 
 sinceStarting :: Signal Time
 sinceStarting = (-) <$> time <*> startTime
@@ -51,7 +78,7 @@ fireball :: QuickTime
 fireball = state >>= \case
     0 -> do
         since <- sinceState
-        when (since >= 3) $ do
+        when (since >= 1) $ do
             liftIO $ putStrLn "and go!"
             setState 1
         return []
@@ -69,7 +96,7 @@ fireball = state >>= \case
         fireballs <- fireballCount
         when (fireballs == 0) $ do
             liftIO $ putStrLn "done"
-            setState 2
+            finish
         when (since >= 0.5) $ do
             liftIO . putStrLn $ "pew pew" ++ show fireballs
             mail fireballAddr $ const (fireballs - 1)

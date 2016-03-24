@@ -14,10 +14,14 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as M
 import qualified Data.Traversable as T
 
+{-# NOINLINE currentLoc #-}
+{-# NOINLINE changeScene #-}
 currentLoc  :: Signal  Loc
 changeScene :: Address Loc
 (currentLoc, changeScene) = newMailbox "current scene" 0
 
+{-# NOINLINE allScenes #-}
+{-# NOINLINE addScene #-}
 allScenes :: Signal  (Map Loc (Signal [Prop]))
 addScene  :: Address (Map Loc (Signal [Prop]))
 (allScenes, addScene) = newMailbox "all scenes" M.empty
