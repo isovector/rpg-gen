@@ -15,6 +15,8 @@ import System.IO.Unsafe (unsafePerformIO)
 {-# NOINLINE stateAddr #-}
 {-# NOINLINE fireballCount #-}
 {-# NOINLINE fireballAddr #-}
+
+quickTime :: Signal QuickTime
 (quickTime, quickTimeAddr) = newMailbox "quicktime" fireball
 (state, stateAddr) = newMailbox "state" 0
 (startTime, startTimeAddr) = newMailbox "start-time" 0
@@ -25,13 +27,13 @@ type QuickTime = Signal [Prop]
 startQuickTime :: QuickTime -> Signal ()
 startQuickTime qt = do
     setState 0
-    mail quickTimeAddr qt
-    mail startTimeAddr =<< time
+    mail quickTimeAddr $ const qt
+    mail startTimeAddr . const =<< time
 
 setState :: Int -> Signal ()
 setState s = do
-    mail stateAddr s
-    mail stateTimeAddr =<< time
+    mail stateAddr $ const s
+    mail stateTimeAddr . const =<< time
 
 sinceStarting :: Signal Time
 sinceStarting = (-) <$> time <*> startTime
@@ -42,7 +44,8 @@ sinceState = (-) <$> time <*> stateTime
 mashing :: Signal Int
 mashing = countIf id $ keyPress SpaceKey
 
-(fireballCount, fireballAddr) = unsafePerformIO $ mailbox 0
+fireballCount :: Signal Int
+(fireballCount, fireballAddr) = newMailbox "fireball" 0
 
 fireball :: QuickTime
 fireball = state >>= \case
@@ -58,7 +61,7 @@ fireball = state >>= \case
         when (since >= 2) $ do
             mashed <- mashing
             liftIO . putStrLn $ show mashed
-            mail fireballAddr mashed
+            mail fireballAddr $ const mashed
             setState 2
         return []
     2 -> do
@@ -69,7 +72,7 @@ fireball = state >>= \case
             setState 2
         when (since >= 0.5) $ do
             liftIO . putStrLn $ "pew pew" ++ show fireballs
-            mail fireballAddr (fireballs - 1)
+            mail fireballAddr $ const (fireballs - 1)
             setState 2
         return []
 

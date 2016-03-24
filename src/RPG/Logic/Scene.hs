@@ -20,7 +20,7 @@ changeScene :: Address Loc
 
 allScenes :: Signal  (Map Loc (Signal [Prop]))
 addScene  :: Address (Map Loc (Signal [Prop]))
-(allScenes, addScene) = newMailboxs "all scenes" mappend M.empty
+(allScenes, addScene) = newMailbox "all scenes" M.empty
 
 scene :: Signal [Prop]
 scene = join $ (M.!) <$> allScenes <*> currentLoc
@@ -33,7 +33,7 @@ teleportTo :: Map Loc [Prop] -> Loc -> Int -> Prop -> Prop
 teleportTo ls l i p = maybe p id $ do
     loc <- M.lookup l ls
     dst <- findProp loc i
-    return . mailing changeScene l
+    return . mailing changeScene (const l)
            $ teleport (center dst) p
 
 findProp :: [Prop] -> Int -> Maybe Prop
