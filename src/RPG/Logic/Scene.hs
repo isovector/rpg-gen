@@ -16,11 +16,11 @@ import qualified Data.Traversable as T
 
 currentLoc  :: Signal  Loc
 changeScene :: Address Loc
-(currentLoc, changeScene) = unsafePerformIO $ mailbox 0
+(currentLoc, changeScene) = newMailbox "current scene" 0
 
 allScenes :: Signal  (Map Loc (Signal [Prop]))
 addScene  :: Address (Map Loc (Signal [Prop]))
-(allScenes, addScene) = unsafePerformIO $ mailboxs mappend M.empty
+(allScenes, addScene) = newMailboxs "all scenes" mappend M.empty
 
 scene :: Signal [Prop]
 scene = join $ (M.!) <$> allScenes <*> currentLoc

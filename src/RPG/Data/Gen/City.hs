@@ -17,7 +17,8 @@ cityGen p = do
     surroundings <- surroundingsGen width height
     pdx <- (/ 1.5) <$> uniformIn (-width, width)
     pdy <- (/ 1.5) <$> uniformIn (-height, height)
-    return . City $ move (mkRel pdx pdy) p : surroundings
+    ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
+    return . City $ move (mkRel pdx pdy) p : (surroundings ++ ecotone)
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
@@ -45,12 +46,31 @@ surroundingsGen width' height' = do
                else uniformIn (-50, 50)
         return $ move (mkRel (xoffset + xspread) (yoffset + yspread)) tree
 
+transitionGen :: Some a -> Some a -> Double -> Some a
+transitionGen a b weight =
+    join $ weighted [ (a, 1 - weight)
+                    , (b, weight)
+                    ]
+
+ecotoneGen :: Pos -> Some Prop -> Pos -> Some Prop -> Some [Prop]
+ecotoneGen src srcGen dst dstGen = do
+    let start   = posDif src origin
+        dist    = distance src dst
+        dir     = scaleRel 40 $ posDif dst src
+        size    = mag dir / 20
+        numObs  = round $ size
+        samples = map ((/size) . fromIntegral) [0..numObs]
+        obsGen  = transitionGen srcGen dstGen
+    forM samples $ \sample -> do
+        obs <- obsGen sample
+        return $ move (start + scaleRel sample dir) obs
+
 rockGen :: Some Prop
 rockGen = do
-    color <- rgb <$> uniformIn (0.3, 0.8)
-                 <*> uniformIn (0, 0.3)
+    color <- rgb <$> uniformIn (0.3, 0.6)
+                 <*> uniformIn (0, 0.4)
                  <*> uniformIn (0.3, 1)
-    radius <- uniformIn (10, 30)
+    radius <- uniformIn (5, 15)
     return . tags (hasCollision .~ True)
            . filled color
            $ circle origin radius

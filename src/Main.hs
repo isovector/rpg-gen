@@ -6,6 +6,7 @@ module Main where
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
+import RPG.Logic.QuickTime
 import RPG.Data.Gen.City
 import RPG.Data.Gen.Player
 import RPG.Data.Gen.Portal
@@ -62,7 +63,8 @@ main = do
     city2 <- surroundings <$> pick (cityGen p2)
     mail' addScene . M.singleton 0 $ return city1
     mail' addScene . M.singleton 1 $ return city2
-    run config gameScene
+
+    run config $ join quickTime
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)
