@@ -26,6 +26,8 @@ data StackFrame = StackFrame
 $(makeLenses ''StackFrame)
 
 
+{-# NOINLINE stateMachine #-}
+{-# NOINLINE stateMachineAddr #-}
 stateMachine :: Signal [StackFrame]
 (stateMachine, stateMachineAddr) = newMailbox "state machine" []
 
@@ -71,6 +73,8 @@ sinceState = (-) <$> time <*> stateTime
 mashing :: Signal Int
 mashing = countIf id $ keyPress SpaceKey
 
+{-# NOINLINE fireballCount #-}
+{-# NOINLINE fireballAddr #-}
 fireballCount :: Signal Int
 (fireballCount, fireballAddr) = newMailbox "fireball" 0
 
@@ -102,9 +106,4 @@ fireball = state >>= \case
             mail fireballAddr $ const (fireballs - 1)
             setState 2
         return []
-
-
-
-
-
 
