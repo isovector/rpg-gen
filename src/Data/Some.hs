@@ -8,16 +8,20 @@ module Data.Some
     , constrain
     , specify
     , specifys
+    , uniform
     ) where
 
 import Control.Lens
 import Control.Monad.IO.Class
-import Math.Probable
+import Math.Probable hiding (uniform)
 import System.IO.Unsafe (unsafePerformIO)
-import qualified Math.Probable as Exports hiding (RandT (..))
+import qualified Math.Probable as Exports hiding (RandT (..), uniform)
 import qualified System.Random.MWC as MWC
 
 type Some a = RandT IO a
+
+uniform :: Double -> Double -> Some Double
+uniform = curry uniformIn
 
 constrain :: Lens a a v v
           -> Some a

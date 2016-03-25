@@ -4,7 +4,8 @@ module RPG.Data.Gen.City
     ) where
 
 import RPG.Core
-import Game.Sequoia.Color (rgb, red)
+import RPG.Data.Gen.Utils
+import Game.Sequoia.Color
 
 data City = City
     { surroundings :: [Prop]
@@ -14,11 +15,17 @@ cityGen :: Prop -> Some City
 cityGen p = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
+    house <- houseGen
     surroundings <- surroundingsGen width height
     pdx <- (/ 1.5) <$> uniformIn (-width, width)
     pdy <- (/ 1.5) <$> uniformIn (-height, height)
+    hdx <- (/ 1.5) <$> uniformIn (-width, width)
+    hdy <- (/ 1.5) <$> uniformIn (-height, height)
     ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
-    return . City $ move (mkRel pdx pdy) p : (surroundings ++ ecotone)
+    return . City $ move (mkRel pdx pdy) p
+                  : ( move (mkRel hdx hdy) house
+                    : surroundings ++ ecotone
+                    )
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
@@ -52,6 +59,50 @@ transitionGen a b weight =
                     , (b, weight)
                     ]
 
+houseGen :: Some Prop
+houseGen = do
+    slatColor <- colorFuzz 0.2 grey
+    roofColor <- colorFuzz 0.3 yellow
+    depth <- uniform 30 60
+    -- slope  <- uniform 20 50
+    -- height <- uniform 50 100
+    halfWidth <- uniform 30 40
+    let height = halfWidth
+        slope = halfWidth
+        depth = halfWidth
+
+    let facade = polygon origin [ mkRel halfWidth 0
+                                , mkRel (-halfWidth) 0
+                                , mkRel (-halfWidth) (-height)
+                                , mkRel 0 . negate $ height + slope
+                                , mkRel halfWidth (-height)
+                                ]
+        roof1 = polygon origin [ mkRel 0 0
+                               , mkRel (-halfWidth) slope
+                               , mkRel (-halfWidth) (-depth)
+                               , mkRel 0 . negate $ slope + depth
+                               ]
+        roof2 = polygon origin [ mkRel 0 . negate $ slope + depth
+                               , mkRel halfWidth (-depth)
+                               , mkRel halfWidth slope
+                               , mkRel 0 0
+                               ]
+        brown = rgb 0.3 0.1 0
+        roofLining = defaultLine { lineColor = brown
+                                 , lineWidth = 5
+                                 }
+        door = rect origin 20 36
+    return . tags (hasCollision .~ True)
+           $ bake
+           [ filled slatColor facade
+           , move (mkRel 0 . negate $ height + slope)
+               $ styled roofColor roofLining roof1
+           , move (mkRel 0 . negate $ height + slope)
+               $ styled roofColor roofLining roof2
+           , move (mkRel 0 (-18)) $ filled brown door
+           ]
+
+
 ecotoneGen :: Pos -> Some Prop -> Pos -> Some Prop -> Some [Prop]
 ecotoneGen src srcGen dst dstGen = do
     let start   = posDif src origin
@@ -67,9 +118,7 @@ ecotoneGen src srcGen dst dstGen = do
 
 rockGen :: Some Prop
 rockGen = do
-    color <- rgb <$> uniformIn (0.3, 0.6)
-                 <*> uniformIn (0, 0.4)
-                 <*> uniformIn (0.3, 1)
+    color <- colorGen (0.3, 0.6) (0, 0.4) (0.3, 1)
     radius <- uniformIn (5, 15)
     return . tags (hasCollision .~ True)
            . filled color
@@ -77,9 +126,7 @@ rockGen = do
 
 treeGen :: Some Prop
 treeGen = do
-    color <- rgb <$> uniformIn (0.2, 0.4)
-                 <*> uniformIn (0.5, 1.0)
-                 <*> uniformIn (0, 0.3)
+    color <- colorGen (0.2, 0.4) (0.5, 1.0) (0, 0.3)
     width <- uniformIn (10, 30)
     heightMod <- uniformIn (1.5, 3)
     let height = width * heightMod
