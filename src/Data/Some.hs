@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types #-}
 
 module Data.Some
@@ -19,6 +20,10 @@ import qualified Math.Probable as Exports hiding (RandT (..), uniform)
 import qualified System.Random.MWC as MWC
 
 type Some a = RandT IO a
+
+instance MonadIO (RandT IO) where
+    liftIO = RandT . const
+
 
 uniform :: Double -> Double -> Some Double
 uniform = curry uniformIn

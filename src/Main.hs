@@ -58,11 +58,9 @@ collisionMap = delay [] 1 $
 
 main :: IO ()
 main = do
-    (p1, p2) <- pick $ portal 0 1
-    city1 <- surroundings <$> pick (cityGen p1)
-    city2 <- surroundings <$> pick (cityGen p2)
-    mail' addScene . mappend . M.singleton 0 $ return city1
-    mail' addScene . mappend . M.singleton 1 $ return city2
+    loc <- newLoc
+    city1 <- surroundings <$> pick (cityGen loc)
+    addScene loc $ return city1
 
     run config gameScene
   where

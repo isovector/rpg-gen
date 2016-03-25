@@ -12,7 +12,7 @@ module RPG.Core
     , rgba
     , Prop
     , Interaction (..)
-    , Loc
+    , Loc (..)
     , Tag ()
     , hasCollision
     , propKey

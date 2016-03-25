@@ -3,29 +3,32 @@ module RPG.Data.Gen.City
     , cityGen
     ) where
 
+import Control.Monad.IO.Class (liftIO)
 import RPG.Core
+import RPG.Logic.Scene
+import RPG.Data.Gen.Portal
 import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
+import qualified Data.Map as M
 
 data City = City
     { surroundings :: [Prop]
     }
 
-cityGen :: Prop -> Some City
-cityGen p = do
+cityGen :: Loc -> Some City
+cityGen loc = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
-    house <- houseGen
+    house <- houseGen loc
     surroundings <- surroundingsGen width height
     pdx <- (/ 1.5) <$> uniformIn (-width, width)
     pdy <- (/ 1.5) <$> uniformIn (-height, height)
     hdx <- (/ 1.5) <$> uniformIn (-width, width)
     hdy <- (/ 1.5) <$> uniformIn (-height, height)
     ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
-    return . City $ move (mkRel pdx pdy) p
-                  : ( move (mkRel hdx hdy) house
-                    : surroundings ++ ecotone
-                    )
+    return . City $  surroundings
+                  ++ map (move (mkRel hdx hdy)) house
+                  ++ ecotone
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
@@ -59,8 +62,35 @@ transitionGen a b weight =
                     , (b, weight)
                     ]
 
-houseGen :: Some Prop
-houseGen = do
+interiorGen :: Double -> Double -> Prop -> Some [Prop]
+interiorGen width height portal = do
+    let depth = 40
+        floor = rect origin width height
+        sideWall = rect origin depth $ height + 2 * depth
+        topWall = rect origin width depth
+        botWall = rect origin ((width - depth) / 2) depth
+        yshift = (height + depth) / 2
+        xshift = (width + depth) / 2
+        tag = tags $ hasCollision .~ True
+
+    return [ filled black floor
+           , tag . move (mkRel 0 (-yshift)) $ filled grey topWall
+           , tag . move (mkRel (-xshift) 0) $ filled grey sideWall
+           , tag . move (mkRel xshift 0) $ filled grey sideWall
+           , tag . move (mkRel (xshift / 2) yshift) $ filled grey botWall
+           , tag . move (mkRel ((-xshift) / 2) yshift) $ filled grey botWall
+           , move (mkRel 0 yshift) portal
+           ]
+
+houseGen :: Loc -> Some [Prop]
+houseGen loc = do
+    intLoc <- liftIO newLoc
+    (p1, p2) <- portal loc intLoc
+    interior <- interiorGen 200 200 p2
+
+    liftIO . addScene intLoc
+           $ return interior
+
     slatColor <- colorFuzz 0.2 grey
     roofColor <- colorFuzz 0.3 yellow
     depth <- uniform 30 60
@@ -92,14 +122,14 @@ houseGen = do
                                  , lineWidth = 5
                                  }
         door = rect origin 20 36
-    return . tags (hasCollision .~ True)
-           $ bake
-           [ filled slatColor facade
-           , move (mkRel 0 . negate $ height + slope)
+        tag = tags (hasCollision .~ True)
+    return [ tag $ filled slatColor facade
+           , tag . move (mkRel 0 . negate $ height + slope)
                $ styled roofColor roofLining roof1
-           , move (mkRel 0 . negate $ height + slope)
+           , tag . move (mkRel 0 . negate $ height + slope)
                $ styled roofColor roofLining roof2
-           , move (mkRel 0 (-18)) $ filled brown door
+           , tag . move (mkRel 0 (-18)) $ filled brown door
+           , move (mkRel 0 5) p1
            ]
 
 
