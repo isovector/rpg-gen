@@ -15,22 +15,23 @@ import qualified Data.Map as M
 
 player :: Signal Player
 player = picking playerGen $ \myPlayer ->
-    foldp update myPlayer $ (,,,,,)
-        <$> collisionMap
+    foldp update myPlayer $ (,,,,,,)
+        <$> wallMap
+        <*> floorMap
         <*> interactions
         <*> elapsed
         <*> arrows
         <*> keyPress SpaceKey
         <*> scenes
   where
-    update (walls, ints, dt, dir, active, scenes)
+    update (walls, floors, ints, dt, dir, active, scenes)
            player@(Player p s) =
         if active && (not $ null ints)
            then let (loc, i) = head ints
                  in flip Player s $ teleportTo scenes loc i p
            else
                 let dpos = flip scaleRel dir $ dt * s
-                 in flip Player s $ tryMove walls p dpos
+                 in flip Player s $ tryMove walls floors p dpos
 
 playerProp :: Signal Prop
 playerProp = fmap prop player
@@ -52,9 +53,13 @@ interactions =
                . map getTag
                $ overlapping ps p
 
-collisionMap :: Signal [Prop]
-collisionMap = delay [] 1 $
+wallMap :: Signal [Prop]
+wallMap = delay [] 1 $
     filter (view hasCollision . getTag) <$> scene
+
+floorMap :: Signal [Prop]
+floorMap = delay [] 1 $
+    filter (view isFloor . getTag) <$> scene
 
 main :: IO ()
 main = do

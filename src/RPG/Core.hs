@@ -15,6 +15,7 @@ module RPG.Core
     , Loc (..)
     , Tag ()
     , hasCollision
+    , isFloor
     , propKey
     , interaction
     , hasInteraction
@@ -41,6 +42,7 @@ data Interaction = Teleport Loc Int
 
 data Tag = Tag
     { _hasCollision :: Bool
+    , _isFloor      :: Bool
     , _propKey      :: Maybe Int
     , _interaction  :: Maybe Interaction
     }
@@ -48,7 +50,7 @@ data Tag = Tag
 $(makeLenses ''Tag)
 
 instance Default Tag where
-    def = Tag False Nothing Nothing
+    def = Tag False False Nothing Nothing
 
 hasInteraction :: Tag -> Bool
 hasInteraction = isJust . _interaction

@@ -65,7 +65,7 @@ transitionGen a b weight =
 interiorGen :: Double -> Double -> Prop -> Some [Prop]
 interiorGen width height portal = do
     let depth = 40
-        floor = rect origin width height
+        floor = rect origin (width + depth) (height + depth)
         sideWall = rect origin depth $ height + 2 * depth
         topWall = rect origin width depth
         botWall = rect origin ((width - depth) / 2) depth
@@ -73,7 +73,7 @@ interiorGen width height portal = do
         xshift = (width + depth) / 2
         tag = tags $ hasCollision .~ True
 
-    return [ filled black floor
+    return [ tags (isFloor .~ True) $ filled red floor
            , tag . move (mkRel 0 (-yshift)) $ filled grey topWall
            , tag . move (mkRel (-xshift) 0) $ filled grey sideWall
            , tag . move (mkRel xshift 0) $ filled grey sideWall

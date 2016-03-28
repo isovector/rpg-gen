@@ -8,7 +8,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/isovector/sequoia.git
-    commit: 4fac66e0c80a1b8c40ca193ea79b288c07485f6f
+    commit: 1c60f8878f78f98f132c660084079467c9b0f0d9
 - location:
     git: https://github.com/isovector/SG.git
     commit: 22d733e62b085209979d4dc05d8e6e94d4cb1a8d
