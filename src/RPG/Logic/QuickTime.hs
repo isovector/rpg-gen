@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.QuickTime
@@ -10,9 +11,9 @@ module RPG.Logic.QuickTime
 
 import Control.Lens
 import Control.Lens.TH
-import RPG.Core
-import Game.Sequoia.Keyboard
 import Control.Monad.IO.Class (liftIO)
+import Game.Sequoia.Keyboard
+import RPG.Core
 import System.IO.Unsafe (unsafePerformIO)
 
 type QuickTime = Signal [Prop]
@@ -34,17 +35,20 @@ stateMachine :: Signal [StackFrame]
 currentStack :: Signal StackFrame
 currentStack = fmap head stateMachine
 
+into :: Lens' StackFrame a -> Signal a
+into l = view l <$> currentStack
+
 quicktime :: Signal QuickTime
-quicktime = view sfEvent <$> currentStack
+quicktime = into sfEvent
 
 state :: Signal Int
-state = view sfState <$> currentStack
+state = into sfState
 
 startTime :: Signal Time
-startTime = view sfStartTime <$> currentStack
+startTime = into sfStartTime
 
 stateTime :: Signal Time
-stateTime = view sfStateTime <$> currentStack
+stateTime = into sfStateTime
 
 headLens :: Lens' [a] a
 headLens = lens head (\as a -> a : tail as)

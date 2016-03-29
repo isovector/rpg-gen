@@ -13,22 +13,21 @@ import RPG.Data.Gen.Portal
 import RPG.Logic.Scene
 import qualified Data.Map as M
 
+
 player :: Signal Player
 player = picking playerGen $ \myPlayer ->
-    foldp update myPlayer $ (,,,,,,)
-        <$> wallMap
-        <*> floorMap
-        <*> interactions
-        <*> elapsed
-        <*> arrows
-        <*> keyPress SpaceKey
-        <*> scenes
-  where
-    update (walls, floors, ints, dt, dir, active, scenes)
-           player@(Player p s) =
-        if active && (not $ null ints)
+    fst . foldmp myPlayer $ \player@(Player p s) -> do
+        walls   <- wallMap
+        floors  <- floorMap
+        ints    <- interactions
+        dt      <- elapsed
+        dir     <- arrows
+        active  <- keyPress SpaceKey
+        scenes' <- scenes
+
+        return $ if active && (not $ null ints)
            then let (loc, i) = head ints
-                 in flip Player s $ teleportTo scenes loc i p
+                 in flip Player s $ teleportTo scenes' loc i p
            else
                 let dpos = flip scaleRel dir $ dt * s
                  in flip Player s $ tryMove walls floors p dpos

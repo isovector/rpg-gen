@@ -8,7 +8,7 @@ import RPG.Core
 data Player = Player
     { prop :: Prop
     , speed :: Double
-    }
+    } deriving Eq
 
 playerGen :: Some Player
 playerGen = do

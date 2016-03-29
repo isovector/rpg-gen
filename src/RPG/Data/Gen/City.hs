@@ -123,13 +123,13 @@ houseGen loc = do
                                  }
         door = rect origin 20 36
         tag = tags (hasCollision .~ True)
-    return [ tag $ filled slatColor facade
+    return [ move (mkRel 0 5) p1
+           , tag $ filled slatColor facade
            , tag . move (mkRel 0 . negate $ height + slope)
                $ styled roofColor roofLining roof1
            , tag . move (mkRel 0 . negate $ height + slope)
                $ styled roofColor roofLining roof2
            , tag . move (mkRel 0 (-18)) $ filled brown door
-           , move (mkRel 0 5) p1
            ]
 
 
