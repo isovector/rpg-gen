@@ -13,39 +13,39 @@ import RPG.Data.Gen.Portal
 import RPG.Logic.Scene
 import qualified Data.Map as M
 
+interactionController :: Signal ()
+interactionController = do
+    ints    <- interactions
+    scenes' <- scenes
+    active  <- keyPress SpaceKey
 
-player :: Signal Player
-player = picking playerGen $ \myPlayer ->
-    fst . foldmp myPlayer $ \player@(Player p s) -> do
+    when (active && (not $ null ints)) $ do
+        let (loc, i) = head ints
+        mail playerAddr $ teleportTo scenes' loc i
+
+player :: Signal Prop
+playerAddr :: Address Prop
+(player, playerAddr) = picking playerGen . flip foldmp $
+    \p -> do
         walls   <- wallMap
         floors  <- floorMap
-        ints    <- interactions
         dt      <- elapsed
         dir     <- arrows
-        active  <- keyPress SpaceKey
-        scenes' <- scenes
-
-        return $ if active && (not $ null ints)
-           then let (loc, i) = head ints
-                 in flip Player s $ teleportTo scenes' loc i p
-           else
-                let dpos = flip scaleRel dir $ dt * s
-                 in flip Player s $ tryMove walls floors p dpos
-
-playerProp :: Signal Prop
-playerProp = fmap prop player
+        interactionController
+        let dpos = flip scaleRel dir $ dt * 300
+        return $ tryMove walls floors p dpos
 
 gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
-    p  <- playerProp
+    p  <- player
     return . focusing p $ ps ++ [p]
 
 interactions :: Signal [(Loc, Int)]
 interactions =
     delay [] 1 $ do
         ps <- scene
-        p  <- playerProp
+        p  <- player
         return . map (maybe undefined $ \(Teleport s i) -> (s, i))
                . map (view interaction)
                . filter hasInteraction
