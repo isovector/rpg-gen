@@ -4,7 +4,7 @@ module RPG.Logic.Scene
     , addScene
     , scene
     , scenes
-    , teleportTo
+    , getEndpoint
     , findProp
     , newLoc
     ) where
@@ -47,12 +47,11 @@ scenes :: Signal (Map Loc [Prop])
 scenes = effectful $ \i ->
     T.mapM (sampleAt i) =<< runSignal allScenes i
 
-teleportTo :: Map Loc [Prop] -> Loc -> Int -> Prop -> Prop
-teleportTo ls l i p = maybe (error $ "unknown " ++ show l) id $ do
+getEndpoint :: Map Loc [Prop] -> Loc -> Int -> Pos
+getEndpoint ls l i = maybe (error $ "unknown " ++ show l) id $ do
     loc <- M.lookup l ls
     dst <- findProp loc i
-    return . mailing changeScene (const l)
-           $ teleport (center dst) p
+    return $ center dst
 
 findProp :: [Prop] -> Int -> Maybe Prop
 findProp ps i = find (maybe False (== i) . view propKey . getTag) ps

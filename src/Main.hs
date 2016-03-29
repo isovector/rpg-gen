@@ -20,8 +20,11 @@ interactionController = do
     active  <- keyPress SpaceKey
 
     when (active && (not $ null ints)) $ do
-        let (loc, i) = head ints
-        mail playerAddr $ teleportTo scenes' loc i
+        let (l, i) = head ints
+            dst    = getEndpoint scenes' l i
+
+        mail changeScene (const l)
+        mail playerAddr $ teleport dst
 
 player :: Signal Prop
 playerAddr :: Address Prop
