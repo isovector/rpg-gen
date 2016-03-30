@@ -6,6 +6,7 @@ module Main where
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
+import RPG.Logic.Menu
 import RPG.Logic.QuickTime
 import RPG.Data.Gen.City
 import RPG.Data.Gen.Player
