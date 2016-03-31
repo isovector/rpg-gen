@@ -4,7 +4,7 @@ module RPG.Logic.Menu
     , Menu ()
     , menuItems
     , menuSelected
-    , menuSignal
+    , menuRealSignal
     , drawMenu
     ) where
 
@@ -49,13 +49,16 @@ down = do
             (min (subtract 1 . length $ _menuItems s)
                 $ 1 + _menuSelected s)
 
-menuSignal :: Signal Menu
-(menuSignal, menuAddress) = foldmp testMenu $ \menu -> do
+menuRealSignal :: Signal Menu
+menuRealSignal = do
     up
     down
     enter <- keyPress SpaceKey
     when enter $ selected >>= itemAction
-    return menu
+    menuSignal
+
+menuSignal :: Signal Menu
+(menuSignal, menuAddress) = newMailbox "menu" testMenu
 
 selected :: Signal MenuItem
 selected = do
