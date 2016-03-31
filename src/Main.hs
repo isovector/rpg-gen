@@ -70,7 +70,8 @@ main = do
     city1 <- surroundings <$> pick (cityGen loc)
     addScene loc $ return city1
 
-    run config gameScene
+    -- run config gameScene
+    run config $ drawMenu <$> menuSignal
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)
