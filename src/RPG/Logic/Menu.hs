@@ -62,8 +62,7 @@ menuSignal :: Signal Menu
 
 selected :: Signal MenuItem
 selected = do
-    -- TODO(sandy): :/
-    menu <- delay undefined 1 menuSignal
+    menu <- menuSignal
     return $ _menuItems menu !! _menuSelected menu
 
 
