@@ -1,10 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Menu
     ( MenuItem (..)
-    , Menu ()
+    , Menu (..)
     , menuItems
     , menuSelected
-    , menuRealSignal
+    , gameState
+    , gameStateAddr
+    , menuAddr
     , drawMenu
     ) where
 
@@ -38,16 +40,22 @@ instance Eq Menu where
 up :: Signal ()
 up = do
     isUp <- keyPress UpKey
-    when isUp . mail menuAddress $ \s ->
+    when isUp . mail menuAddr $ \s ->
         s & menuSelected .~ (max 0 . subtract 1 $ _menuSelected s)
 
 down :: Signal ()
 down = do
     isDown <- keyPress DownKey
-    when isDown . mail menuAddress $ \s ->
+    when isDown . mail menuAddr $ \s ->
         s & menuSelected .~
             (min (subtract 1 . length $ _menuItems s)
                 $ 1 + _menuSelected s)
+
+{-# NOINLINE gameState #-}
+{-# NOINLINE gameStateAddr #-}
+gameState :: Signal (Signal [Prop])
+(gameState, gameStateAddr) =
+    newMailbox "game state" $ drawMenu <$> menuRealSignal
 
 menuRealSignal :: Signal Menu
 menuRealSignal = do
@@ -57,23 +65,16 @@ menuRealSignal = do
     when enter $ selected >>= itemAction
     menuSignal
 
+{-# NOINLINE menuSignal #-}
+{-# NOINLINE menuAddr #-}
 menuSignal :: Signal Menu
-(menuSignal, menuAddress) = newMailbox "menu" testMenu
+(menuSignal, menuAddr) = newMailbox "menu" $ error "no menu set"
 
 selected :: Signal MenuItem
 selected = do
     menu <- menuSignal
     return $ _menuItems menu !! _menuSelected menu
 
-
-testMenu :: Menu
-testMenu = Menu
-    { _menuSelected = 1
-    , _menuItems = [ MenuItem "hello" $ liftIO $ putStrLn "hello"
-                   , MenuItem "goodbye" $ liftIO $ putStrLn "goodbye"
-                   , MenuItem "nice it works" $ liftIO $ putStrLn ":D"
-                   ]
-    }
 
 
 drawMenu :: Menu -> [Prop]

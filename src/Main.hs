@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
+import Control.Monad.IO.Class (liftIO)
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
@@ -27,6 +28,8 @@ interactionController = do
         mail changeScene (const l)
         mail playerAddr $ teleport dst
 
+{-# NOINLINE player #-}
+{-# NOINLINE playerAddr #-}
 player :: Signal Prop
 playerAddr :: Address Prop
 (player, playerAddr) = picking playerGen . flip foldmp $
@@ -64,14 +67,27 @@ floorMap :: Signal [Prop]
 floorMap = delay [] 1 $
     filter (view isFloor . getTag) <$> scene
 
+mainMenu :: Menu
+mainMenu = Menu
+    { _menuSelected = 0
+    , _menuItems = [ MenuItem "Start Game" . mail gameStateAddr
+                                           $ const gameScene
+                   , MenuItem "Quit" $ error "goodbye"
+                   ]
+    }
+
 main :: IO ()
 main = do
     loc <- newLoc
     city1 <- surroundings <$> pick (cityGen loc)
     addScene loc $ return city1
 
-    -- run config gameScene
-    run config $ drawMenu <$> menuRealSignal
+    mail' menuAddr $ const mainMenu
+
+    -- TODO(sandy): it takes exponential time to catch up to gameScene
+    -- for some reason
+    sampleAt 9 . mail gameStateAddr $ const gameScene
+    run config $ join gameState
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)
