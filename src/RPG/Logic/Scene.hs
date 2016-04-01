@@ -27,14 +27,12 @@ newLoc = do
 
 {-# NOINLINE currentLoc #-}
 {-# NOINLINE changeScene #-}
-currentLoc  :: Signal  Loc
-changeScene :: Address Loc
+currentLoc  :: Signal Loc
 (currentLoc, changeScene) = newMailbox "current scene" 0
 
 {-# NOINLINE allScenes #-}
 {-# NOINLINE allScenesAddr #-}
-allScenes :: Signal  (Map Loc (Signal [Prop]))
-allScenesAddr  :: Address (Map Loc (Signal [Prop]))
+allScenes :: Signal (Map Loc (Signal [Prop]))
 (allScenes, allScenesAddr) = newMailbox "all scenes" M.empty
 
 addScene :: Loc -> Signal [Prop] -> IO ()

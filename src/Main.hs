@@ -35,10 +35,10 @@ player :: Signal Prop
 playerAddr :: Address Prop
 (player, playerAddr) = picking playerGen . flip foldmp $
     \p -> do
-        walls   <- wallMap
-        floors  <- floorMap
-        dt      <- elapsed
-        dir     <- arrows' gameInput
+        walls  <- wallMap
+        floors <- floorMap
+        dt     <- elapsed
+        dir    <- arrows' gameInput
         interactionController p
         let dpos = flip scaleRel dir $ dt * 300
         return $ tryMove walls floors p dpos

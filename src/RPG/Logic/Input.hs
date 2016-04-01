@@ -15,7 +15,6 @@ data InputFilter = GameFilter
                  | MenuFilter
                  deriving (Show, Eq, Ord, Enum)
 
-
 {-# NOINLINE inputFilter #-}
 {-# NOINLINE inputFilterAddr #-}
 inputFilter  :: Signal InputFilter
@@ -33,3 +32,4 @@ gameInput = inputFilterer GameFilter
 
 menuInput :: Signal [Key]
 menuInput = inputFilterer MenuFilter
+
