@@ -58,12 +58,10 @@ interactions p = do
            $ overlapping ps p
 
 wallMap :: Signal [Prop]
-wallMap = delay [] 1 $
-    filter (view hasCollision . getTag) <$> scene
+wallMap = filter (view hasCollision . getTag) <$> scene
 
 floorMap :: Signal [Prop]
-floorMap = delay [] 1 $
-    filter (view isFloor . getTag) <$> scene
+floorMap = filter (view isFloor . getTag) <$> scene
 
 mainMenu :: Menu
 mainMenu = Menu
