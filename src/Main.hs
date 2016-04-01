@@ -7,6 +7,7 @@ import Control.Monad.IO.Class (liftIO)
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
+import RPG.Logic.Input
 import RPG.Logic.Menu
 import RPG.Logic.QuickTime
 import RPG.Data.Gen.City
@@ -19,7 +20,7 @@ interactionController :: Prop -> Signal ()
 interactionController p = do
     ints    <- interactions p
     scenes' <- scenes
-    active  <- keyPress SpaceKey
+    active  <- keyPress' gameInput SpaceKey
 
     when (active && (not $ null ints)) $ do
         let (l, i) = head ints
@@ -37,7 +38,7 @@ playerAddr :: Address Prop
         walls   <- wallMap
         floors  <- floorMap
         dt      <- elapsed
-        dir     <- arrows
+        dir     <- arrows' gameInput
         interactionController p
         let dpos = flip scaleRel dir $ dt * 300
         return $ tryMove walls floors p dpos
@@ -79,7 +80,7 @@ main = do
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
-    run config $ join gameState
+    run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)
