@@ -15,9 +15,9 @@ import RPG.Data.Gen.Portal
 import RPG.Logic.Scene
 import qualified Data.Map as M
 
-interactionController :: Signal ()
-interactionController = do
-    ints    <- interactions
+interactionController :: Prop -> Signal ()
+interactionController p = do
+    ints    <- interactions p
     scenes' <- scenes
     active  <- keyPress SpaceKey
 
@@ -38,7 +38,7 @@ playerAddr :: Address Prop
         floors  <- floorMap
         dt      <- elapsed
         dir     <- arrows
-        interactionController
+        interactionController p
         let dpos = flip scaleRel dir $ dt * 300
         return $ tryMove walls floors p dpos
 
@@ -48,16 +48,14 @@ gameScene = do
     p  <- player
     return . focusing p $ ps ++ [p]
 
-interactions :: Signal [(Loc, Int)]
-interactions =
-    delay [] 1 $ do
-        ps <- scene
-        p  <- player
-        return . map (maybe undefined $ \(Teleport s i) -> (s, i))
-               . map (view interaction)
-               . filter hasInteraction
-               . map getTag
-               $ overlapping ps p
+interactions :: Prop -> Signal [(Loc, Int)]
+interactions p = do
+    ps <- scene
+    return . map (maybe undefined $ \(Teleport s i) -> (s, i))
+           . map (view interaction)
+           . filter hasInteraction
+           . map getTag
+           $ overlapping ps p
 
 wallMap :: Signal [Prop]
 wallMap = delay [] 1 $
@@ -83,10 +81,6 @@ main = do
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
-
-    -- TODO(sandy): it takes exponential time to catch up to gameScene
-    -- for some reason
-    sampleAt 9 . mail gameStateAddr $ const gameScene
     run config $ join gameState
   where
     config = EngineConfig { windowTitle = "rpg-gen"
