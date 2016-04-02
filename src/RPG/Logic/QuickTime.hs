@@ -1,6 +1,6 @@
 {-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.QuickTime
     ( start
@@ -8,6 +8,8 @@ module RPG.Logic.QuickTime
     , finish
     , fireball
     , runQuickTime
+    , lift
+    , QuickTime
     ) where
 
 import Control.Lens
@@ -22,7 +24,7 @@ import Unsafe.Coerce
 type QuickTime s a = StateT s Signal a
 
 data StackFrame a = StackFrame
-    { _sfEvent :: QuickTime a [Prop]
+    { _sfEvent :: Int -> QuickTime a [Prop]
     , _sfState :: Int
     , _sfStartTime :: Time
     , _sfStateTime :: Time
@@ -46,9 +48,10 @@ runQuickTime :: Signal [Prop]
 runQuickTime = do
     frame <- unsafeCoerce currentStack
     let dat = _sfData frame
+        st  = _sfState frame
 
     len    <- length <$> stateMachine
-    (a, s) <- runStateT (_sfEvent frame) dat
+    (a, s) <- runStateT (_sfEvent frame st) dat
     len'   <- length <$> stateMachine
 
     -- TODO(sandy): there might be a bug here if you finish this frame
@@ -57,9 +60,6 @@ runQuickTime = do
         $ headLens.sfData .~ s
 
     return a
-
-state :: QuickTime a Int
-state = into _sfState
 
 startTime :: QuickTime a Time
 startTime = into _sfStartTime
@@ -77,7 +77,7 @@ setState s = do
          $ (headLens.sfStateTime .~ now)
          . (headLens.sfState .~ s)
 
-start :: QuickTime a [Prop] -> Signal ()
+start :: (Int -> QuickTime a [Prop]) -> Signal ()
 start qt = do
     now <- time
     mail stateMachineAddr
@@ -95,14 +95,15 @@ sinceState = (-) <$> lift time <*> stateTime
 mashing :: QuickTime a Int
 mashing = lift . countIf id $ keyPress SpaceKey
 
-fireball :: QuickTime Int [Prop]
-fireball = state >>= \case
+fireball :: Int -> QuickTime Int [Prop]
+fireball = \case
     0 -> do
         since <- sinceState
         when (since >= 1) $ do
             liftIO $ putStrLn "and go!"
             setState 1
         return []
+
     1 -> do
         mashing
         since <- sinceState
@@ -112,6 +113,7 @@ fireball = state >>= \case
             put mashed
             setState 2
         return []
+
     2 -> do
         since <- sinceState
         fireballs <- get

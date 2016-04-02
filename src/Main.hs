@@ -9,7 +9,7 @@ import Game.Sequoia.Keyboard
 import RPG.Core
 import RPG.Logic.Input
 import RPG.Logic.Menu
-import RPG.Logic.QuickTime
+import RPG.Logic.Combat.Types
 import RPG.Data.Gen.City
 import RPG.Data.Gen.Player
 import RPG.Data.Gen.Portal
