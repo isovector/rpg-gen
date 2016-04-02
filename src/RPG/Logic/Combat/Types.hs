@@ -33,6 +33,7 @@ data Effects = Effects
 
 data Target = Target
     { who :: Actor
+    , address :: Address Prop
     , isOccluded :: Bool
     }
 
@@ -53,26 +54,30 @@ runEffects s e = do
 type Attack a = AttackParams -> Int -> QuickTime a ()
 
 partitionActors :: Prop -> [Prop] -> ([Target], [Prop])
-partitionActors me ps = first (map toTarget) $ partition (hasActor . getTag) ps
+partitionActors me ps = first (map toTarget)
+                      $ partition (hasActor . getTag) ps
   where
     toTarget p =
-        let a = maybe (error "not an actor") getActor
-              . view actorId
+        let a = maybe (error "not an actor") id
+              . view actor
               $ getTag p
-              -- TODO(sandy): if things goes wrong, it's probably here
+            addr = maybe (error "doesn't have an addr") id
+                 . view propAddr
+                 $ getTag p
             pos = center me
             occluded = (2 /=)
                      . length
                      . sweepLine ps pos
                      . posDif pos
                      $ center p
-         in undefined
+         in Target a addr occluded
 
 
 sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     0 -> do
         lift . forM_ (targets params) $ \target ->
-            mail (view actorAddr $ who target) $ over hp (subtract dmg)
+            mail (address target) . over (tagL.actor._Just.hp)
+                                  $ subtract dmg
         finish
 
