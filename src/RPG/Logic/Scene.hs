@@ -12,6 +12,7 @@ module RPG.Logic.Scene
 import Data.IORef
 import Data.List (find)
 import RPG.Core
+import RPG.Logic.Utils
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as M
 import qualified Data.Traversable as T
@@ -20,10 +21,7 @@ import qualified Data.Traversable as T
 locIdGen = unsafePerformIO $ newIORef (Loc 0)
 
 newLoc :: IO Loc
-newLoc = do
-    loc@(Loc i) <- readIORef locIdGen
-    writeIORef locIdGen . Loc $ i + 1
-    return loc
+newLoc = newX (\(Loc i) -> Loc $ i + 1) locIdGen
 
 {-# NOINLINE currentLoc #-}
 {-# NOINLINE changeScene #-}
@@ -36,10 +34,10 @@ allScenes :: Signal (Map Loc (Signal [Prop]))
 (allScenes, allScenesAddr) = newMailbox "all scenes" M.empty
 
 addScene :: Loc -> Signal [Prop] -> IO ()
-addScene loc s = mail' allScenesAddr . mappend $ M.singleton loc s
+addScene = addX' allScenesAddr
 
 scene :: Signal [Prop]
-scene = join $ (M.!) <$> allScenes <*> currentLoc
+scene = join $ getCurX allScenes currentLoc
 
 scenes :: Signal (Map Loc [Prop])
 scenes = effectful $ \i ->

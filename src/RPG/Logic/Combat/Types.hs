@@ -20,6 +20,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Function (on)
 import RPG.Core
 import RPG.Logic.QuickTime
+import qualified Data.Map as M
 
 data Actor = Actor
     { prop :: Signal Prop
