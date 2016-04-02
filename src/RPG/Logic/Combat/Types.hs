@@ -1,11 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Combat.Types
     ( Effects (..)
-    , Actor (..)
-    , hp
-    , mp
-    , team
     , Target (..)
     , AttackParams (..)
     , Weapon (..)
@@ -14,25 +9,13 @@ module RPG.Logic.Combat.Types
     ) where
 
 import Control.Lens
-import Control.Lens.TH
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Function (on)
 import RPG.Core
+import RPG.Logic.Actor
 import RPG.Logic.QuickTime
 import qualified Data.Map as M
-
-data Actor = Actor
-    { prop :: Signal Prop
-    , _address :: Address Actor
-    , _hp :: Int
-    -- , maxHp :: Int
-    , _mp :: Int
-    -- , maxMp :: Int
-    -- TODO(sandy): what type should this be?
-    , _team :: Int
-    }
-$(makeLenses ''Actor)
 
 data Weapon a = Weapon
     { range :: Double
@@ -57,17 +40,6 @@ data AttackParams = AttackParams
     , environment :: [Prop]
     }
 
-newActor :: Signal Prop
-         -> Int
-         -> Int
-         -> Int
-         -> Signal (Signal Actor)
-newActor prop hp mp team = do
-    (sig, addr) <- liftIO . mailbox
-                          $ Actor prop (error "no address!") hp mp team
-    mail addr $ address .~ addr
-    return sig
-
 -- TODO(sandy): maybe split this up to run in Signal?
 runEffects :: Int -> Effects -> QuickTime a [Prop]
 runEffects s e = do
@@ -82,6 +54,6 @@ sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     0 -> do
         lift . forM_ (targets params) $ \target ->
-            mail (view address $ who target) $ over hp (subtract dmg)
+            mail (view actorAddr $ who target) $ over hp (subtract dmg)
         finish
 

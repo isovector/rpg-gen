@@ -26,13 +26,14 @@ newLoc = newX (\(Loc i) -> Loc $ i + 1) locIdGen
 {-# NOINLINE currentLoc #-}
 {-# NOINLINE changeScene #-}
 currentLoc  :: Signal Loc
-(currentLoc, changeScene) = newMailbox "current scene" 0
+(currentLoc, changeScene) = newMailbox "current scene" $ Loc 0
 
 {-# NOINLINE allScenes #-}
 {-# NOINLINE allScenesAddr #-}
 allScenes :: Signal (Map Loc (Signal [Prop]))
 (allScenes, allScenesAddr) = newMailbox "all scenes" M.empty
 
+{-# NOINLINE addScene #-}
 addScene :: Loc -> Signal [Prop] -> IO ()
 addScene = addX' allScenesAddr
 

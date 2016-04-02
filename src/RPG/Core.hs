@@ -19,6 +19,13 @@ module RPG.Core
     , propKey
     , interaction
     , hasInteraction
+    , ActorId (..)
+    , Actor (..)
+    , hp
+    , mp
+    , team
+    , actorAddr
+    , Team
     ) where
 
 import Control.Applicative
@@ -33,12 +40,26 @@ import Game.Sequoia
 import Game.Sequoia.Color (rgb, rgba)
 
 newtype Loc = Loc Int
-    deriving (Eq, Show, Ord, Num)
-
-type Prop = Prop' Tag
+    deriving (Eq, Show, Ord)
 
 data Interaction = Teleport Loc Int
     deriving (Eq, Show)
+
+newtype ActorId = ActorId Int
+    deriving (Eq, Show, Ord)
+
+type Team = Int
+
+data Actor = Actor
+    { actorId :: ActorId
+    , _actorAddr :: Address Actor
+    , _hp :: Int
+    -- , maxHp :: Int
+    , _mp :: Int
+    -- , maxMp :: Int
+    , _team :: Team
+    }
+$(makeLenses ''Actor)
 
 data Tag = Tag
     { _hasCollision :: Bool
@@ -48,6 +69,8 @@ data Tag = Tag
     }
     deriving (Eq, Show)
 $(makeLenses ''Tag)
+
+type Prop = Prop' Tag
 
 instance Default Tag where
     def = Tag False False Nothing Nothing
