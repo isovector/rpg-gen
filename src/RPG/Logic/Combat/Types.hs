@@ -16,14 +16,18 @@ module RPG.Logic.Combat.Types
 import Control.Lens
 import Control.Lens.TH
 import Control.Monad
+import Control.Monad.IO.Class (liftIO)
 import Data.Function (on)
 import RPG.Core
 import RPG.Logic.QuickTime
 
 data Actor = Actor
-    { prop :: Prop
+    { prop :: Signal Prop
+    , _address :: Address Actor
     , _hp :: Int
+    -- , maxHp :: Int
     , _mp :: Int
+    -- , maxMp :: Int
     -- TODO(sandy): what type should this be?
     , _team :: Int
     }
@@ -43,7 +47,6 @@ data Effects = Effects
 
 data Target = Target
     { who :: Actor
-    , address :: Address Actor
     , isOccluded :: Bool
     }
 
@@ -52,6 +55,17 @@ data AttackParams = AttackParams
     , targets :: [Target]
     , environment :: [Prop]
     }
+
+newActor :: Signal Prop
+         -> Int
+         -> Int
+         -> Int
+         -> Signal (Signal Actor)
+newActor prop hp mp team = do
+    (sig, addr) <- liftIO . mailbox
+                          $ Actor prop (error "no address!") hp mp team
+    mail addr $ address .~ addr
+    return sig
 
 -- TODO(sandy): maybe split this up to run in Signal?
 runEffects :: Int -> Effects -> QuickTime a [Prop]
@@ -66,6 +80,7 @@ type Attack a = AttackParams -> Int -> QuickTime a ()
 sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     0 -> do
-        forM_ (targets params) $ \target -> do
-            lift . mail (address target) $ over hp (subtract dmg)
+        lift . forM_ (targets params) $ \target ->
+            mail (view address $ who target) $ over hp (subtract dmg)
         finish
+
