@@ -1,3 +1,4 @@
+{-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -6,83 +7,95 @@ module RPG.Logic.QuickTime
     , setState
     , finish
     , fireball
-    , quicktime
+    , runQuickTime
     ) where
 
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.State hiding (state)
 import Control.Monad.IO.Class (liftIO)
 import Game.Sequoia.Keyboard
 import RPG.Core
 import System.IO.Unsafe (unsafePerformIO)
+import Unsafe.Coerce
 
-type QuickTime = Signal [Prop]
+type QuickTime s a = StateT s Signal a
 
-data StackFrame = StackFrame
-    { _sfEvent :: QuickTime
+data StackFrame a = StackFrame
+    { _sfEvent :: QuickTime a [Prop]
     , _sfState :: Int
     , _sfStartTime :: Time
     , _sfStateTime :: Time
+    , _sfData :: a
     }
 $(makeLenses ''StackFrame)
 
 
 {-# NOINLINE stateMachine #-}
 {-# NOINLINE stateMachineAddr #-}
-stateMachine :: Signal [StackFrame]
+stateMachine :: Signal [forall a. StackFrame a]
 (stateMachine, stateMachineAddr) = newMailbox "state machine" []
 
-currentStack :: Signal StackFrame
+currentStack :: Signal (forall a. StackFrame a)
 currentStack = fmap head stateMachine
 
-into :: Lens' StackFrame a -> Signal a
-into l = view l <$> currentStack
+into :: ((forall a. StackFrame a) -> b) -> QuickTime a b
+into l = lift $ l <$> currentStack
 
-quicktime :: Signal QuickTime
-quicktime = into sfEvent
+runQuickTime :: Signal [Prop]
+runQuickTime = do
+    frame <- unsafeCoerce currentStack
+    let dat = _sfData frame
 
-state :: Signal Int
-state = into sfState
+    len    <- length <$> stateMachine
+    (a, s) <- runStateT (_sfEvent frame) dat
+    len'   <- length <$> stateMachine
 
-startTime :: Signal Time
-startTime = into sfStartTime
+    -- TODO(sandy): there might be a bug here if you finish this frame
+    when (len == len')
+        . mail stateMachineAddr
+        $ headLens.sfData .~ s
 
-stateTime :: Signal Time
-stateTime = into sfStateTime
+    return a
+
+state :: QuickTime a Int
+state = into _sfState
+
+startTime :: QuickTime a Time
+startTime = into _sfStartTime
+
+stateTime :: QuickTime a Time
+stateTime = into _sfStateTime
 
 headLens :: Lens' [a] a
 headLens = lens head (\as a -> a : tail as)
 
-setState :: Int -> Signal ()
+setState :: Int -> QuickTime a ()
 setState s = do
-    now <- time
-    mail stateMachineAddr
-        $ (headLens.sfStateTime .~ now)
-        . (headLens.sfState .~ s)
+    now <- lift time
+    lift . mail stateMachineAddr
+         $ (headLens.sfStateTime .~ now)
+         . (headLens.sfState .~ s)
 
-start :: QuickTime -> Signal ()
+start :: QuickTime a [Prop] -> Signal ()
 start qt = do
     now <- time
-    mail stateMachineAddr (StackFrame qt 0 now now :)
+    mail stateMachineAddr
+        (StackFrame qt 0 now now (error "no data set on quicktime") :)
 
-finish :: Signal ()
-finish = mail stateMachineAddr tail
+finish :: QuickTime a ()
+finish = lift $ mail stateMachineAddr tail
 
-sinceStarting :: Signal Time
-sinceStarting = (-) <$> time <*> startTime
+sinceStarting :: QuickTime a Time
+sinceStarting = (-) <$> lift time <*> startTime
 
-sinceState :: Signal Time
-sinceState = (-) <$> time <*> stateTime
+sinceState :: QuickTime a Time
+sinceState = (-) <$> lift time <*> stateTime
 
-mashing :: Signal Int
-mashing = countIf id $ keyPress SpaceKey
+mashing :: QuickTime a Int
+mashing = lift . countIf id $ keyPress SpaceKey
 
-{-# NOINLINE fireballCount #-}
-{-# NOINLINE fireballAddr #-}
-fireballCount :: Signal Int
-(fireballCount, fireballAddr) = newMailbox "fireball" 0
-
-fireball :: QuickTime
+fireball :: QuickTime Int [Prop]
 fireball = state >>= \case
     0 -> do
         since <- sinceState
@@ -96,18 +109,18 @@ fireball = state >>= \case
         when (since >= 2) $ do
             mashed <- mashing
             liftIO . putStrLn $ show mashed
-            mail fireballAddr $ const mashed
+            put mashed
             setState 2
         return []
     2 -> do
         since <- sinceState
-        fireballs <- fireballCount
+        fireballs <- get
         when (fireballs == 0) $ do
             liftIO $ putStrLn "done"
             finish
         when (since >= 0.5) $ do
             liftIO . putStrLn $ "pew pew" ++ show fireballs
-            mail fireballAddr $ const (fireballs - 1)
+            modify $ subtract 1
             setState 2
         return []
 
