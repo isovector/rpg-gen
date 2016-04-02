@@ -19,6 +19,8 @@ module RPG.Core
     , propKey
     , interaction
     , hasInteraction
+    , hasActor
+    , actorId
     , ActorId (..)
     , Actor (..)
     , hp
@@ -51,8 +53,7 @@ newtype ActorId = ActorId Int
 type Team = Int
 
 data Actor = Actor
-    { actorId :: ActorId
-    , _actorAddr :: Address Actor
+    { _actorAddr :: Address Actor
     , _hp :: Int
     -- , maxHp :: Int
     , _mp :: Int
@@ -66,6 +67,7 @@ data Tag = Tag
     , _isFloor      :: Bool
     , _propKey      :: Maybe Int
     , _interaction  :: Maybe Interaction
+    , _actorId      :: Maybe ActorId
     }
     deriving (Eq, Show)
 $(makeLenses ''Tag)
@@ -73,8 +75,11 @@ $(makeLenses ''Tag)
 type Prop = Prop' Tag
 
 instance Default Tag where
-    def = Tag False False Nothing Nothing
+    def = Tag False False Nothing Nothing Nothing
 
 hasInteraction :: Tag -> Bool
 hasInteraction = isJust . _interaction
+
+hasActor :: Tag -> Bool
+hasActor = isJust . _actorId
 

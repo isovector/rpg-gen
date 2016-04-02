@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Actor
-    (
+    ( newActor
+    , allActors
+    , getActor
     ) where
 
 import Control.Lens
@@ -24,10 +26,12 @@ newActor :: Int -- ^Max HP
          -> Team
          -> Signal (Signal Actor)
 newActor hp mp team = do
+    aid <- liftIO newActorId
     (sig, addr) <- liftIO $ do
-        aid <- newActorId
-        mailbox $ Actor aid (error "no address!") hp mp team
+        -- TODO(sandy): this maybe wants a foldmp instead
+        mailbox $ Actor (error "no address!") hp mp team
     mail addr $ actorAddr .~ addr
+    liftIO $ addActor aid sig
     return sig
 
 {-# NOINLINE allActors #-}
@@ -36,6 +40,9 @@ allActors :: Signal (Map ActorId (Signal Actor))
 (allActors, allActorsAddr) = newMailbox "all actors" M.empty
 
 {-# NOINLINE addActor #-}
-addActor :: Loc -> Signal [Prop] -> IO ()
+addActor :: ActorId -> Signal Actor -> IO ()
 addActor = addX' allActorsAddr
+
+getActor :: ActorId -> Signal Actor
+getActor = join . getCurX allActors . pure
 

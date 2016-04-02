@@ -8,9 +8,11 @@ module RPG.Logic.Combat.Types
     , runEffects
     ) where
 
+import Control.Arrow (first)
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
+import Data.List (partition)
 import Data.Function (on)
 import RPG.Core
 import RPG.Logic.Actor
@@ -49,6 +51,23 @@ runEffects s e = do
        else setState s >> return []
 
 type Attack a = AttackParams -> Int -> QuickTime a ()
+
+partitionActors :: Prop -> [Prop] -> ([Target], [Prop])
+partitionActors me ps = first (map toTarget) $ partition (hasActor . getTag) ps
+  where
+    toTarget p =
+        let a = maybe (error "not an actor") getActor
+              . view actorId
+              $ getTag p
+              -- TODO(sandy): if things goes wrong, it's probably here
+            pos = center me
+            occluded = (2 /=)
+                     . length
+                     . sweepLine ps pos
+                     . posDif pos
+                     $ center p
+         in undefined
+
 
 sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
