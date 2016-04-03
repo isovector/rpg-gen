@@ -58,7 +58,7 @@ cityGen loc = do
     hdy <- (/ 1.5) <$> uniformIn (-height, height)
     ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
     return $  surroundings
-           ++ map (move (mkRel hdx hdy)) house
+           -- ++ map (move (mkRel hdx hdy)) house
            ++ ecotone
 
 surroundingsGen :: Double -> Double -> Some [Prop]

@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Menu
     ( MenuItem (..)
@@ -19,6 +20,7 @@ import Game.Sequoia.Color
 import Game.Sequoia.Keyboard
 import Game.Sequoia.Stanza
 import RPG.Core
+import RPG.Logic.Utils
 import qualified Data.Text as T
 
 data MenuItem = MenuItem
@@ -39,19 +41,8 @@ instance Eq Menu where
             && _menuSelected m1 == _menuSelected m2
       where labels = map itemLabel . _menuItems
 
-up :: Signal ()
-up = do
-    isUp <- keyPress UpKey
-    when isUp . mail menuAddr $ \s ->
-        s & menuSelected .~ (max 0 . subtract 1 $ _menuSelected s)
-
-down :: Signal ()
-down = do
-    isDown <- keyPress DownKey
-    when isDown . mail menuAddr $ \s ->
-        s & menuSelected .~
-            (min (subtract 1 . length $ _menuItems s)
-                $ 1 + _menuSelected s)
+boundedSel :: Lens' Menu Int
+boundedSel = bounded menuItems menuSelected
 
 {-# NOINLINE gameState #-}
 {-# NOINLINE gameStateAddr #-}
@@ -65,8 +56,9 @@ runMenu = drawMenu <$> menuRealSignal
 
 menuRealSignal :: Signal Menu
 menuRealSignal = do
-    up
-    down
+    whenM (keyPress UpKey)   . mail menuAddr $ over boundedSel (subtract 1)
+    whenM (keyPress DownKey) . mail menuAddr $ over boundedSel (+1)
+
     enter <- keyPress SpaceKey
     when enter $ selected >>= itemAction
     menuSignal

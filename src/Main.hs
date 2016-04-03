@@ -5,6 +5,7 @@ module Main where
 
 import Unsafe.Coerce
 import Control.Monad.IO.Class (liftIO)
+import Game.Sequoia.Color
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
@@ -32,8 +33,13 @@ interactionController p = do
         mail changeScene (const l)
         mail playerAddr $ teleport dst
 
-badGuy :: Signal Prop
-(badGuy, badGuyAddr) = picking playerGen . flip foldmp $ return
+badGuy1 :: Signal Prop
+(badGuy1, badGuyAddr1) =
+    foldmp (filled red $ rect (mkPos (-40) 0) 10 20) return
+
+badGuy2 :: Signal Prop
+(badGuy2, badGuyAddr2) =
+    foldmp (filled blue $ rect (mkPos 40 0) 20 10) return
 
 {-# NOINLINE player #-}
 {-# NOINLINE playerAddr #-}
@@ -58,9 +64,10 @@ gameSceneWQuickTimes = do
 gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
-    bg <- badGuy
+    bg1 <- badGuy1
+    bg2 <- badGuy2
     p  <- player
-    return . focusing p $ ps ++ [bg, p]
+    return . focusing p $ ps ++ [bg1, bg2, p]
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
@@ -94,7 +101,8 @@ main = do
 
     mail' menuAddr $ const mainMenu
     sampleAt 0 $ do
-        makeActor badGuyAddr $ Actor 100 100 1 (unsafeCoerce $ sword 20)
+        makeActor badGuyAddr1 $ Actor 100 100 1 (unsafeCoerce $ sword 20)
+        makeActor badGuyAddr2 $ Actor 100 100 1 (unsafeCoerce $ sword 20)
         makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
 
     sampleAt 1 $ do

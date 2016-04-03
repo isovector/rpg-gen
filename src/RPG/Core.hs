@@ -6,6 +6,7 @@ module RPG.Core
     , module Control.Applicative
     , module Control.Lens
     , module Control.Monad
+    , module Control.Monad.IfElse
     , module Data.Some
     , Map
     , rgb
@@ -41,6 +42,7 @@ import Control.Applicative
 import Control.Lens
 import Control.Lens.TH
 import Control.Monad
+import Control.Monad.IfElse (whenM, untilM, return')
 import Data.Map (Map)
 import Data.Maybe (isJust)
 import Data.Some

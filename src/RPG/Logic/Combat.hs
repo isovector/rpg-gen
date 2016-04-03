@@ -8,6 +8,8 @@ import Control.Lens
 import Control.Lens.TH
 import Control.Monad.State hiding (state)
 import Data.Default
+import Data.Function (on)
+import Data.List (sortBy)
 import Data.Maybe (fromJust)
 import Game.Sequoia.Color
 import Game.Sequoia.Keyboard
@@ -17,6 +19,7 @@ import RPG.Logic.Input
 import RPG.Logic.Menu
 import RPG.Logic.QuickTime
 import RPG.Logic.Combat.Types
+import RPG.Logic.Utils
 
 data CombatState = CombatState
     { _whoseTurn    :: Int
@@ -80,6 +83,9 @@ combat pss players (Just s) = do
    actor' :: Lens' Prop Actor
    actor' = tagL.propActor._Just'
 
+   toroidSel :: Lens' CombatState Int
+   toroidSel = torus targets curSelection
+
    myTurn :: [Prop] -> Prop -> QuickTime CombatState [Prop]
    myTurn ps player
     | s == __MENU = lift $ runMenu
@@ -94,7 +100,8 @@ combat pss players (Just s) = do
     | s == __ATTACK_INIT = do
         let a  = view actor' player
             w  = view weapon a
-            ts = filter ((isTargetable w) a . who)
+            ts = sortBy (on compare (fst . unpackPos . location))
+                    . filter (isTargetable w a . who)
                     . showTrace
                     . fst
                     $ partitionActors player ps
@@ -109,6 +116,10 @@ combat pss players (Just s) = do
             t    = ts !! sel
             pos = location t
         selected <- lift $ keyPress SpaceKey
+
+        whenM (lift $ keyPress RightKey) . modify $ over toroidSel (+1)
+        whenM (lift $ keyPress LeftKey)  . modify $ over toroidSel (subtract 1)
+
         when selected $ do
             let a  = view actor' player
                 w  = view weapon a

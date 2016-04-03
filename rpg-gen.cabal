@@ -30,7 +30,8 @@ executable rpg-gen
                        mtl,
                        sequoia,
                        data-default,
-                       text
+                       text,
+                       IfElse
   hs-source-dirs:      src
   default-language:    Haskell2010
   main-is:             Main.hs
