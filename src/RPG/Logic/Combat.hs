@@ -11,6 +11,7 @@ import Data.Default
 import Data.Maybe (fromJust)
 import Game.Sequoia.Color
 import Game.Sequoia.Keyboard
+import Game.Sequoia.Utils (showTrace)
 import RPG.Core
 import RPG.Logic.Input
 import RPG.Logic.Menu
@@ -90,10 +91,11 @@ combat ps player (Just s) = do
     | s == __ATTACK_INIT = do
         pl  <- lift player
         pps <- lift ps
+        liftIO $ mapM_ (print . hasActor . getTag) pps
         let a  = view actor' pl
             w  = view weapon a
-            ts = filter (not . isOccluded)
-                    . filter ((isTargetable w) a . who)
+            ts = filter ((isTargetable w) a . who)
+                    . showTrace
                     . fst
                     $ partitionActors pl pps
         modify $ targets .~ ts
@@ -101,8 +103,13 @@ combat ps player (Just s) = do
         return []
 
     | s == __ATTACK_SEL = do
-        p <- lift . floating
-                  . move (mkRel 0 (-10))
-                  $ styled red defaultLine arrow
-        return [p]
+        ts <- view targets <$> get
+        let poss = map location ts
+        return $ do
+            pos <- poss
+            return . teleport pos . traced white $ circle origin 30
+        -- p <- lift . floating
+        --           . move (mkRel 0 (-10))
+        --           $ styled red defaultLine arrow
+        -- return [p]
 

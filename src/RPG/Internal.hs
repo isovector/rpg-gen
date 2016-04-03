@@ -33,6 +33,9 @@ data Target = Target
     , isOccluded :: Bool
     }
 
+instance Show Target where
+    show t = (show $ location t) ++ (show $ isOccluded t)
+
 type Team = Int
 
 type QuickTime s a = StateT s Signal a

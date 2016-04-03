@@ -32,6 +32,9 @@ interactionController p = do
         mail changeScene (const l)
         mail playerAddr $ teleport dst
 
+badGuy :: Signal Prop
+(badGuy, badGuyAddr) = picking playerGen . flip foldmp $ return
+
 {-# NOINLINE player #-}
 {-# NOINLINE playerAddr #-}
 player :: Signal Prop
@@ -49,9 +52,10 @@ playerAddr :: Address Prop
 gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
+    bg <- badGuy
     p  <- player
     qt <- runQuickTime
-    return $ (focusing p $ ps ++ [p]) ++ qt
+    return $ (focusing p $ ps ++ [bg, p]) ++ qt
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
@@ -85,8 +89,9 @@ main = do
 
     mail' menuAddr $ const mainMenu
     sampleAt (-1) $ do
+        makeActor badGuyAddr $ Actor 100 100 1 (unsafeCoerce $ sword 20)
         makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
-        start $ combat scene player
+        start $ combat (return <$> badGuy) player
     run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen"
