@@ -26,7 +26,9 @@ __ATTACK = 2
 actionMenu :: Menu
 actionMenu = Menu
     { _menuSelected = 0
-    , _menuItems = [ MenuItem "Move"   $ setState' __MOVE
+    , _menuItems = [ MenuItem "Move"   $ do
+                        setState' __MOVE
+                        mail inputFilterAddr $ const GameFilter
                    , MenuItem "Attack" $ setState' __ATTACK
                    ]
     }
@@ -48,8 +50,12 @@ combat (Just s) = do
    myTurn
     | s == __MENU =
         lift $ runMenu
-    | s == __MOVE =
-        error "goodbye"
+    | s == __MOVE = do
+        since <- sinceState
+        when (since >= 1.5) $ do
+            lift . mail inputFilterAddr $ const NoneFilter
+            setState __MENU
+        return []
     | s == __ATTACK =
         undefined
 

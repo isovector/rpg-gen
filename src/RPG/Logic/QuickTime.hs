@@ -9,6 +9,8 @@ module RPG.Logic.QuickTime
     , finish
     , fireball
     , runQuickTime
+    , sinceState
+    , sinceStarting
     , lift
     , QuickTime
     ) where

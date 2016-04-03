@@ -50,7 +50,7 @@ gameScene = do
     ps <- scene
     p  <- player
     qt <- runQuickTime
-    return . focusing p $ ps ++ [p] ++ qt
+    return $ (focusing p $ ps ++ [p]) ++ qt
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
