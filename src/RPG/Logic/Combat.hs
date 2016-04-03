@@ -59,16 +59,19 @@ combat :: Signal [Prop]
        -> Signal Prop
        -> Maybe Int
        -> QuickTime CombatState [Prop]
-combat ps player Nothing = do
+combat pss players Nothing = do
     put $ CombatState 0 0 []
     lift $ do
         mail menuAddr $ const actionMenu
         mail inputFilterAddr $ const NoneFilter
     return []
-combat ps player (Just s) = do
-    cs <- get
+combat pss players (Just s) = do
+    cs     <- get
+    ps     <- lift pss
+    player <- lift players
+
     case _whoseTurn cs of
-      0 -> myTurn
+      0 -> myTurn ps player
       _ -> undefined
   where
    _Just' :: Lens' (Maybe a) a
@@ -77,8 +80,8 @@ combat ps player (Just s) = do
    actor' :: Lens' Prop Actor
    actor' = tagL.propActor._Just'
 
-   myTurn :: QuickTime CombatState [Prop]
-   myTurn
+   myTurn :: [Prop] -> Prop -> QuickTime CombatState [Prop]
+   myTurn ps player
     | s == __MENU = lift $ runMenu
 
     | s == __MOVE = do
@@ -89,14 +92,12 @@ combat ps player (Just s) = do
         return []
 
     | s == __ATTACK_INIT = do
-        pl  <- lift player
-        pps <- lift ps
-        let a  = view actor' pl
+        let a  = view actor' player
             w  = view weapon a
             ts = filter ((isTargetable w) a . who)
                     . showTrace
                     . fst
-                    $ partitionActors pl pps
+                    $ partitionActors player ps
         modify $ targets .~ ts
         setState __ATTACK_SEL
         return []
@@ -106,23 +107,21 @@ combat ps player (Just s) = do
         let ts   = view targets st
             sel  = view curSelection st
             t    = ts !! sel
-            poss = location t
+            pos = location t
         selected <- lift $ keyPress SpaceKey
         when selected $ do
-            pps <- lift ps
-            pl  <- lift player
-            let a  = view actor' pl
+            let a  = view actor' player
                 w  = view weapon a
             setState __MENU
             lift . start . action w $ AttackParams
                 { src         = a
                 , targeted    = []
-                , environment = pps
+                , environment = ps
                 }
 
         p <- lift . floating
                   . move (mkRel 0 (-10))
-                  . teleport poss
+                  . teleport pos
                   $ styled red defaultLine arrow
         return [p]
         -- p <- lift . floating
