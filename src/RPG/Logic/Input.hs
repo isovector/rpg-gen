@@ -13,6 +13,7 @@ import qualified Data.Traversable as T
 
 data InputFilter = GameFilter
                  | MenuFilter
+                 | NoneFilter
                  deriving (Show, Eq, Ord, Enum)
 
 {-# NOINLINE inputFilter #-}

@@ -7,6 +7,7 @@ import Control.Monad.IO.Class (liftIO)
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
+import RPG.Logic.Combat
 import RPG.Logic.Input
 import RPG.Logic.Menu
 import RPG.Logic.Combat.Types

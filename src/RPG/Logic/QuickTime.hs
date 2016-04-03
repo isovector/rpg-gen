@@ -4,6 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.QuickTime
     ( start
+    , start'
     , setState
     , finish
     , fireball
@@ -16,6 +17,7 @@ import Control.Lens
 import Control.Lens.TH
 import Control.Monad.State hiding (state)
 import Control.Monad.IO.Class (liftIO)
+import Data.Default
 import Game.Sequoia.Keyboard
 import RPG.Core
 import System.IO.Unsafe (unsafePerformIO)
@@ -24,7 +26,7 @@ import Unsafe.Coerce
 type QuickTime s a = StateT s Signal a
 
 data StackFrame a = StackFrame
-    { _sfEvent :: Int -> QuickTime a [Prop]
+    { _sfEvent :: Maybe Int -> QuickTime a [Prop]
     , _sfState :: Int
     , _sfStartTime :: Time
     , _sfStateTime :: Time
@@ -45,10 +47,13 @@ into :: ((forall a. StackFrame a) -> b) -> QuickTime a b
 into l = lift $ l <$> currentStack
 
 runQuickTime :: Signal [Prop]
-runQuickTime = do
+runQuickTime = runQuickTime' False
+
+runQuickTime' :: Bool -> Signal [Prop]
+runQuickTime' init = do
     frame <- unsafeCoerce currentStack
     let dat = _sfData frame
-        st  = _sfState frame
+        st  = if init then Nothing else Just $ _sfState frame
 
     len    <- length <$> stateMachine
     (a, s) <- runStateT (_sfEvent frame st) dat
@@ -77,11 +82,15 @@ setState s = do
          $ (headLens.sfStateTime .~ now)
          . (headLens.sfState .~ s)
 
-start :: (Int -> QuickTime a [Prop]) -> Signal ()
-start qt = do
+start' :: a -> (Maybe Int -> QuickTime a [Prop]) -> Signal ()
+start' a qt = do
     now <- time
     mail stateMachineAddr
-        (StackFrame qt 0 now now (error "no data set on quicktime") :)
+        (StackFrame qt 0 now now a :)
+    void $ runQuickTime' True
+
+start :: Default a => (Maybe Int -> QuickTime a [Prop]) -> Signal ()
+start = start' def
 
 finish :: QuickTime a ()
 finish = lift $ mail stateMachineAddr tail
@@ -95,16 +104,17 @@ sinceState = (-) <$> lift time <*> stateTime
 mashing :: QuickTime a Int
 mashing = lift . countIf id $ keyPress SpaceKey
 
-fireball :: Int -> QuickTime Int [Prop]
+fireball :: Maybe Int -> QuickTime Int [Prop]
 fireball = \case
-    0 -> do
+    Nothing -> return []
+    Just 0 -> do
         since <- sinceState
         when (since >= 1) $ do
             liftIO $ putStrLn "and go!"
             setState 1
         return []
 
-    1 -> do
+    Just 1 -> do
         mashing
         since <- sinceState
         when (since >= 2) $ do
@@ -114,7 +124,7 @@ fireball = \case
             setState 2
         return []
 
-    2 -> do
+    Just 2 -> do
         since <- sinceState
         fireballs <- get
         when (fireballs == 0) $ do

@@ -80,3 +80,7 @@ sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
                                   $ subtract dmg
         finish
 
+makeActor :: Address Prop -> Actor -> Signal ()
+makeActor addr a = mail addr $ (tagL.propAddr  .~ Just addr)
+                             . (tagL.propActor .~ Just a)
+
