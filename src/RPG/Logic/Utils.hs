@@ -39,3 +39,4 @@ torus c i = lens (\s -> looped s $ view i s) $ \s v ->
   where
     looped s v = let len = length $ view c s
                   in mod (len + mod v len) len
+

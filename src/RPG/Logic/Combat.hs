@@ -29,16 +29,15 @@ data CombatState = CombatState
 $(makeLenses ''CombatState)
 
 __MENU        = 0
-__MOVE        = 1
-__ATTACK_INIT = 2
-__ATTACK_SEL  = 3
+__MOVE_PREP   = 1
+__MOVE        = 2
+__ATTACK_INIT = 3
+__ATTACK_SEL  = 4
 
 actionMenu :: Menu
 actionMenu = Menu
     { _menuSelected = 0
-    , _menuItems = [ MenuItem "Move"   $ do
-                        setState' __MOVE
-                        mail inputFilterAddr $ const GameFilter
+    , _menuItems = [ MenuItem "Move"   $ setState' __MOVE_PREP
                    , MenuItem "Attack" $ setState' __ATTACK_INIT
                    ]
     }
@@ -90,9 +89,16 @@ combat pss players (Just s) = do
    myTurn ps player
     | s == __MENU = lift $ runMenu
 
+    | s == __MOVE_PREP = do
+        since <- sinceState
+        when (since >= 0.2) $ do
+            lift . mail inputFilterAddr $ const GameFilter
+            setState __MOVE
+        return []
+
     | s == __MOVE = do
         since <- sinceState
-        when (since >= 1.5) $ do
+        when (since >= 1) $ do
             lift . mail inputFilterAddr $ const NoneFilter
             setState __MENU
         return []
