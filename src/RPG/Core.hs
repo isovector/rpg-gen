@@ -28,6 +28,7 @@ module RPG.Core
     , hp
     , mp
     , team
+    , weapon
     , Team
     , Target (..)
     , AttackParams (..)

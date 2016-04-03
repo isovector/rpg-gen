@@ -2,6 +2,9 @@
 module RPG.Logic.Combat.Types
     ( Effects (..)
     , runEffects
+    , makeActor
+    , sword
+    , partitionActors
     ) where
 
 import Control.Arrow (first)
@@ -39,7 +42,7 @@ partitionActors me ps = first (map toTarget)
                  . view propAddr
                  $ getTag p
             pos = center me
-            occluded = (2 /=)
+            occluded = (1 <)
                      . length
                      . sweepLine ps pos
                      . posDif pos

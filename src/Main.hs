@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
+import Unsafe.Coerce
 import Control.Monad.IO.Class (liftIO)
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
@@ -83,7 +84,9 @@ main = do
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
-    sampleAt (-1) $ start combat
+    sampleAt (-1) $ do
+        makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
+        start $ combat scene player
     run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen"

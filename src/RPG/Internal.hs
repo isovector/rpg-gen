@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 module RPG.Internal
     ( Prop
     , Loc (..)
@@ -57,7 +58,15 @@ data Actor = Actor
     , _mp :: Int
     -- , maxMp :: Int
     , _team :: Team
-    } deriving (Show, Eq)
+    , _weapon :: forall a. Weapon a
+    }
+
+instance Eq Actor where
+    a1 == a2 = let f g = on (==) g a1 a2
+                in all id [ f _hp
+                          , f _mp
+                          , f _team
+                          ]
 
 data Tag = Tag
     { _hasCollision :: Bool
