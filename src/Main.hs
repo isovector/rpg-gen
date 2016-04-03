@@ -49,13 +49,18 @@ playerAddr :: Address Prop
         let dpos = flip scaleRel dir $ dt * 300
         return $ tryMove walls floors p dpos
 
+gameSceneWQuickTimes :: Signal [Prop]
+gameSceneWQuickTimes = do
+    gs <- gameScene
+    qt <- runQuickTime
+    return $ gs ++ qt
+
 gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
     bg <- badGuy
     p  <- player
-    qt <- runQuickTime
-    return $ (focusing p $ ps ++ [bg, p]) ++ qt
+    return . focusing p $ ps ++ [bg, p]
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
@@ -88,11 +93,13 @@ main = do
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
-    sampleAt (-1) $ do
+    sampleAt 0 $ do
         makeActor badGuyAddr $ Actor 100 100 1 (unsafeCoerce $ sword 20)
         makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
-        start $ combat (return <$> badGuy) player
-    run config gameScene
+
+    sampleAt 1 $ do
+        start $ combat gameScene player
+    run config gameSceneWQuickTimes
   where
     config = EngineConfig { windowTitle = "rpg-gen"
                           , windowDimensions = (640, 480)

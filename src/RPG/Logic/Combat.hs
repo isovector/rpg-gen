@@ -91,7 +91,6 @@ combat ps player (Just s) = do
     | s == __ATTACK_INIT = do
         pl  <- lift player
         pps <- lift ps
-        liftIO $ mapM_ (print . hasActor . getTag) pps
         let a  = view actor' pl
             w  = view weapon a
             ts = filter ((isTargetable w) a . who)

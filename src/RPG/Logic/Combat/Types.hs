@@ -47,7 +47,7 @@ partitionActors me ps = first (map toTarget)
                      . sweepLine ps pos
                      . posDif pos
                      $ center p
-         in Target a pos addr occluded
+         in Target a (center p) addr occluded
 
 sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
