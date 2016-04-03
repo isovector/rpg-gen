@@ -25,7 +25,7 @@ instance MonadIO (RandT IO) where
     liftIO = RandT . const
 
 
-uniform :: Double -> Double -> Some Double
+uniform :: MWC.Variate a => a -> a -> Some a
 uniform = curry uniformIn
 
 constrain :: Lens a a v v

@@ -1,0 +1,7 @@
+* Fix prop baking
+* Allow for death of props by making them Maybe Props instead
+* Reclaim signal memory by deleting everything but the last 5 frames
+* Hook in Effects manager
+* Respect weapon range
+* Target selection
+* Entering and leaving state controllers for quicktime

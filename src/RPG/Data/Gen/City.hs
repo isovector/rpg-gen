@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module RPG.Data.Gen.City
     ( City (..)
     , cityGen
@@ -11,24 +12,54 @@ import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
 import qualified Data.Map as M
 
+data Size = Tiny | Small | Medium | Large | Huge
+    deriving (Eq, Show, Ord, Enum)
+
 data City = City
-    { surroundings :: [Prop]
+    { hasInn  :: Bool
+    -- TODO(sandy): specialize later
+    , hasShop :: Bool
+    , size    :: Size
     }
 
-cityGen :: Loc -> Some City
+whGen :: Size -> Some (Int, Int)
+whGen s = do
+    let wh = go s
+    w <- uniformIn wh
+    h <- uniformIn wh
+    return (w, h)
+  where
+    go :: Size -> (Int, Int)
+    go Tiny   = (250, 350)
+    go Small  = (350, 500)
+    go Medium = (500, 700)
+    go Large  = (700, 900)
+    go Huge   = (900, 1200)
+
+cityGen2 :: City -> Loc -> Some [Prop]
+cityGen2 c loc = do
+    let s         = size c
+        numHouses = fromEnum s * 2 + 3
+    numRows <- do
+        delta  <- uniform 1 $ numHouses `div` 2
+        return $ numHouses - delta
+    (w, h) <- whGen s
+    return []
+
+
+
+cityGen :: Loc -> Some [Prop]
 cityGen loc = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
     house <- houseGen loc
     surroundings <- surroundingsGen width height
-    pdx <- (/ 1.5) <$> uniformIn (-width, width)
-    pdy <- (/ 1.5) <$> uniformIn (-height, height)
     hdx <- (/ 1.5) <$> uniformIn (-width, width)
     hdy <- (/ 1.5) <$> uniformIn (-height, height)
     ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
-    return . City $  surroundings
-                  ++ map (move (mkRel hdx hdy)) house
-                  ++ ecotone
+    return $  surroundings
+           ++ map (move (mkRel hdx hdy)) house
+           ++ ecotone
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
@@ -93,7 +124,6 @@ houseGen loc = do
 
     slatColor <- colorFuzz 0.2 grey
     roofColor <- colorFuzz 0.3 yellow
-    depth <- uniform 30 60
     -- slope  <- uniform 20 50
     -- height <- uniform 50 100
     halfWidth <- uniform 30 40

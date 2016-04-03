@@ -89,7 +89,7 @@ mainMenu = Menu
 main :: IO ()
 main = do
     loc <- newLoc
-    city1 <- surroundings <$> pick (cityGen loc)
+    city1 <- pick (cityGen loc)
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
