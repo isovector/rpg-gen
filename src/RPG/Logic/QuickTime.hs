@@ -5,6 +5,7 @@
 module RPG.Logic.QuickTime
     ( start
     , setState
+    , setState'
     , finish
     , fireball
     , runQuickTime
@@ -46,13 +47,17 @@ into :: ((forall a. StackFrame a) -> b) -> QuickTime a b
 into l = lift $ l <$> currentStack
 
 runQuickTime :: Signal [Prop]
-runQuickTime = runQuickTime' False
+runQuickTime = do
+    frames <- length <$> stateMachine
+    if frames /= 0
+       then runQuickTime'
+       else return []
 
-runQuickTime' :: Bool -> Signal [Prop]
-runQuickTime' init = do
+runQuickTime' :: Signal [Prop]
+runQuickTime' = do
     frame <- unsafeCoerce currentStack
     let dat = _sfData frame
-        st  = if init then Nothing else Just $ _sfState frame
+        st  = Just $ _sfState frame
 
     len    <- length <$> stateMachine
     (a, s) <- runStateT (_sfEvent frame st) dat
@@ -74,19 +79,23 @@ stateTime = into _sfStateTime
 headLens :: Lens' [a] a
 headLens = lens head (\as a -> a : tail as)
 
-setState :: Int -> QuickTime a ()
-setState s = do
-    now <- lift time
-    lift . mail stateMachineAddr
+
+setState' :: Int -> Signal ()
+setState' s = do
+    now <- time
+    mail stateMachineAddr
          $ (headLens.sfStateTime .~ now)
          . (headLens.sfState .~ s)
+
+setState :: Int -> QuickTime a ()
+setState = lift . setState'
 
 start :: (Maybe Int -> QuickTime a [Prop]) -> Signal ()
 start qt = do
     now <- time
-    mail stateMachineAddr
-        (StackFrame qt 0 now now (error "no state") :)
-    void $ runQuickTime' True
+    (_, dat) <- runStateT (qt Nothing) $ error "no data"
+    let frame = StackFrame qt 0 now now dat
+    mail stateMachineAddr (frame :)
 
 finish :: QuickTime a ()
 finish = lift $ mail stateMachineAddr tail

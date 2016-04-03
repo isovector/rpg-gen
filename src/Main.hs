@@ -10,6 +10,7 @@ import RPG.Core
 import RPG.Logic.Combat
 import RPG.Logic.Input
 import RPG.Logic.Menu
+import RPG.Logic.QuickTime
 import RPG.Logic.Combat.Types
 import RPG.Data.Gen.City
 import RPG.Data.Gen.Player
@@ -48,7 +49,8 @@ gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
     p  <- player
-    return . focusing p $ ps ++ [p]
+    qt <- runQuickTime
+    return . focusing p $ ps ++ [p] ++ qt
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
@@ -81,6 +83,7 @@ main = do
     addScene loc $ return city1
 
     mail' menuAddr $ const mainMenu
+    sampleAt (-1) $ start combat
     run config gameScene
   where
     config = EngineConfig { windowTitle = "rpg-gen"

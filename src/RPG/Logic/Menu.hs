@@ -2,6 +2,7 @@
 module RPG.Logic.Menu
     ( MenuItem (..)
     , Menu (..)
+    , runMenu
     , menuItems
     , menuSelected
     , gameState
@@ -53,9 +54,13 @@ down = do
 
 {-# NOINLINE gameState #-}
 {-# NOINLINE gameStateAddr #-}
+-- TODO(sandy): not sure how I feel about this
 gameState :: Signal (Signal [Prop])
 (gameState, gameStateAddr) =
-    newMailbox "game state" $ drawMenu <$> menuRealSignal
+    newMailbox "game state" $ runMenu
+
+runMenu :: Signal [Prop]
+runMenu = drawMenu <$> menuRealSignal
 
 menuRealSignal :: Signal Menu
 menuRealSignal = do
