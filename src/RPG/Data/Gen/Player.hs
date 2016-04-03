@@ -4,10 +4,10 @@ module RPG.Data.Gen.Player
 
 import RPG.Core
 
-playerGen :: Some Prop
+playerGen :: Some (Maybe Prop)
 playerGen = do
     color <- rgb <$> uniformIn (0, 1)
                  <*> uniformIn (0, 1)
                  <*> uniformIn (0, 1)
-    return . filled color $ rect origin 20 20
+    return . Just . filled color $ rect origin 20 20
 

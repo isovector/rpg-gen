@@ -112,7 +112,7 @@ combat pss players (Just s) = do
     | s == __ATTACK_SEL = do
         st <- get
         let ts   = view targets st
-            sel  = view curSelection st
+            sel  = view toroidSel st
             t    = ts !! sel
             pos = location t
         selected <- lift $ keyPress SpaceKey
@@ -126,7 +126,7 @@ combat pss players (Just s) = do
             setState __MENU
             lift . start . action w $ AttackParams
                 { src         = a
-                , targeted    = []
+                , targeted    = [t]
                 , environment = ps
                 }
 
@@ -135,8 +135,4 @@ combat pss players (Just s) = do
                   . teleport pos
                   $ styled red defaultLine arrow
         return [p]
-        -- p <- lift . floating
-        --           . move (mkRel 0 (-10))
-        --           $ styled red defaultLine arrow
-        -- return [p]
 

@@ -7,6 +7,7 @@ module RPG.Data.Gen.City
 import Control.Monad.IO.Class (liftIO)
 import RPG.Core
 import RPG.Logic.Scene
+import RPG.Data.Gen.Actor
 import RPG.Data.Gen.Portal
 import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
@@ -48,18 +49,22 @@ cityGen2 c loc = do
 
 
 
-cityGen :: Loc -> Some [Prop]
+cityGen :: Loc -> Some (Signal [Maybe Prop])
 cityGen loc = do
     width  <- uniformIn (100, 200)
     height <- uniformIn (100, 200)
     house <- houseGen loc
     surroundings <- surroundingsGen width height
+    actors <- listOf 5 actorGen
     hdx <- (/ 1.5) <$> uniformIn (-width, width)
     hdy <- (/ 1.5) <$> uniformIn (-height, height)
-    ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen (mkPos 150 (-80)) treeGen
-    return $  surroundings
+    ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen
+                          (mkPos 150 (-80)) treeGen
+    return . sequence
+           $ fmap (return . Just) surroundings
            -- ++ map (move (mkRel hdx hdy)) house
-           ++ ecotone
+           -- ++ fmap (return . Just) ecotone
+           ++ actors
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do
@@ -120,7 +125,8 @@ houseGen loc = do
     interior <- interiorGen 200 200 p2
 
     liftIO . addScene intLoc
-           $ return interior
+           . return
+           $ fmap Just interior
 
     slatColor <- colorFuzz 0.2 grey
     roofColor <- colorFuzz 0.3 yellow

@@ -5,6 +5,7 @@ module Main where
 
 import Unsafe.Coerce
 import Control.Monad.IO.Class (liftIO)
+import Data.Maybe (fromJust)
 import Game.Sequoia.Color
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
@@ -31,29 +32,21 @@ interactionController p = do
             dst    = getEndpoint scenes' l i
 
         mail changeScene (const l)
-        mail playerAddr $ teleport dst
-
-badGuy1 :: Signal Prop
-(badGuy1, badGuyAddr1) =
-    foldmp (filled red $ rect (mkPos (-40) 0) 10 20) return
-
-badGuy2 :: Signal Prop
-(badGuy2, badGuyAddr2) =
-    foldmp (filled blue $ rect (mkPos 40 0) 20 10) return
+        mail playerAddr $ Just . teleport dst . fromJust
 
 {-# NOINLINE player #-}
 {-# NOINLINE playerAddr #-}
-player :: Signal Prop
-playerAddr :: Address Prop
+player :: Signal (Maybe Prop)
+playerAddr :: Address (Maybe Prop)
 (player, playerAddr) = picking playerGen . flip foldmp $
-    \p -> do
+    \(Just p) -> do
         walls  <- wallMap
         floors <- floorMap
         dt     <- elapsed
         dir    <- arrows' gameInput
         interactionController p
         let dpos = flip scaleRel dir $ dt * 300
-        return $ tryMove walls floors p dpos
+        return . Just $ tryMove walls floors p dpos
 
 gameSceneWQuickTimes :: Signal [Prop]
 gameSceneWQuickTimes = do
@@ -64,10 +57,8 @@ gameSceneWQuickTimes = do
 gameScene :: Signal [Prop]
 gameScene = do
     ps <- scene
-    bg1 <- badGuy1
-    bg2 <- badGuy2
-    p  <- player
-    return . focusing p $ ps ++ [bg1, bg2, p]
+    p  <- maybe (error "player died") id <$> player
+    return . focusing p $ ps ++ [p]
 
 interactions :: Prop -> Signal [(Loc, Int)]
 interactions p = do
@@ -97,16 +88,14 @@ main :: IO ()
 main = do
     loc <- newLoc
     city1 <- pick (cityGen loc)
-    addScene loc $ return city1
+    addScene loc city1
 
     mail' menuAddr $ const mainMenu
     sampleAt 0 $ do
-        makeActor badGuyAddr1 $ Actor 100 100 1 (unsafeCoerce $ sword 20)
-        makeActor badGuyAddr2 $ Actor 100 100 1 (unsafeCoerce $ sword 20)
         makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
 
     sampleAt 1 $ do
-        start $ combat gameScene player
+        start $ combat gameScene (fromJust <$> player)
     run config gameSceneWQuickTimes
   where
     config = EngineConfig { windowTitle = "rpg-gen"

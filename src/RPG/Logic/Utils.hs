@@ -10,6 +10,7 @@ module RPG.Logic.Utils
 
 import Data.IORef
 import RPG.Core
+import Game.Sequoia.Utils
 import qualified Data.Map as M
 import qualified Data.Traversable as T
 
@@ -33,6 +34,8 @@ bounded c i = lens (view i) $ \s v ->
     s & i .~ (max 0 $ min (subtract 1 . length $ view c s) v)
 
 torus :: Lens' s [a] -> Lens' s Int -> Lens' s Int
-torus c i = lens (view i) $ \s v ->
-    s & i .~ let len = length $ view c s
-              in mod (len + mod v len) len
+torus c i = lens (\s -> looped s $ view i s) $ \s v ->
+    s & i .~ looped s v
+  where
+    looped s v = let len = length $ view c s
+                  in mod (len + mod v len) len

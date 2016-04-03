@@ -29,7 +29,7 @@ data Interaction = Teleport Loc Int
 data Target = Target
     { who :: Actor
     , location :: Pos
-    , address :: Address Prop
+    , address :: Address (Maybe Prop)
     , isOccluded :: Bool
     }
 
@@ -76,7 +76,7 @@ data Tag = Tag
     , _isFloor      :: Bool
     , _propKey      :: Maybe Int
     , _interaction  :: Maybe Interaction
-    , _propAddr     :: Maybe (Address Prop)
+    , _propAddr     :: Maybe (Address (Maybe Prop))
     , _propActor    :: Maybe Actor
     }
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE Rank2Types #-}
 module RPG.Logic.Combat.Types
     ( Effects (..)
     , runEffects
@@ -13,6 +14,7 @@ import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.List (partition)
 import Data.Function (on)
+import Data.Maybe (fromJust)
 import RPG.Core
 import RPG.Logic.QuickTime
 import qualified Data.Map as M
@@ -52,13 +54,17 @@ partitionActors me ps = first (map toTarget)
 sword :: Int -> Weapon [Prop]
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     Just 0 -> do
-        lift . forM_ (targeted params) $ \target ->
-            mail (address target) . over (actor.hp)
+        lift . forM_ (targeted params) $ \target -> do
+            mail (address target) . over (_Just'.actor.hp)
                                   $ subtract dmg
         finish
         return []
     _ -> return []
 
-makeActor :: Address Prop -> Actor -> Signal ()
-makeActor addr a = mail addr $ (tagL.propActor .~ Just a)
+makeActor :: Address (Maybe Prop) -> Actor -> Signal ()
+makeActor addr a = mail addr $ (_Just'.tagL.propActor .~ Just a)
+                             . (_Just'.tagL.propAddr  .~ Just (addr))
+
+_Just' :: Lens' (Maybe a) a
+_Just' = lens fromJust (const Just)
 
