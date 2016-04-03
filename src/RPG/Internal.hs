@@ -40,7 +40,7 @@ type Team = Int
 
 type QuickTime s a = StateT s Signal a
 
-type Attack a = AttackParams -> Int -> QuickTime a ()
+type Attack a = AttackParams -> Maybe Int -> QuickTime a [Prop]
 
 data AttackParams = AttackParams
     { src :: Actor

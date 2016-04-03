@@ -49,13 +49,15 @@ partitionActors me ps = first (map toTarget)
                      $ center p
          in Target a (center p) addr occluded
 
-sword :: Int -> Weapon ()
+sword :: Int -> Weapon [Prop]
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
-    0 -> do
+    Just 0 -> do
         lift . forM_ (targeted params) $ \target ->
             mail (address target) . over (actor.hp)
                                   $ subtract dmg
         finish
+        return []
+    _ -> return []
 
 makeActor :: Address Prop -> Actor -> Signal ()
 makeActor addr a = mail addr $ (tagL.propActor .~ Just a)

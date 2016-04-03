@@ -102,11 +102,29 @@ combat ps player (Just s) = do
         return []
 
     | s == __ATTACK_SEL = do
-        ts <- view targets <$> get
-        let poss = map location ts
-        return $ do
-            pos <- poss
-            return . teleport pos . traced white $ circle origin 30
+        st <- get
+        let ts   = view targets st
+            sel  = view curSelection st
+            t    = ts !! sel
+            poss = location t
+        selected <- lift $ keyPress SpaceKey
+        when selected $ do
+            pps <- lift ps
+            pl  <- lift player
+            let a  = view actor' pl
+                w  = view weapon a
+            setState __MENU
+            lift . start . action w $ AttackParams
+                { src         = a
+                , targeted    = []
+                , environment = pps
+                }
+
+        p <- lift . floating
+                  . move (mkRel 0 (-10))
+                  . teleport poss
+                  $ styled red defaultLine arrow
+        return [p]
         -- p <- lift . floating
         --           . move (mkRel 0 (-10))
         --           $ styled red defaultLine arrow
