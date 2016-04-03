@@ -4,7 +4,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.QuickTime
     ( start
-    , start'
     , setState
     , finish
     , fireball
@@ -82,15 +81,12 @@ setState s = do
          $ (headLens.sfStateTime .~ now)
          . (headLens.sfState .~ s)
 
-start' :: a -> (Maybe Int -> QuickTime a [Prop]) -> Signal ()
-start' a qt = do
+start :: (Maybe Int -> QuickTime a [Prop]) -> Signal ()
+start qt = do
     now <- time
     mail stateMachineAddr
-        (StackFrame qt 0 now now a :)
+        (StackFrame qt 0 now now (error "no state") :)
     void $ runQuickTime' True
-
-start :: Default a => (Maybe Int -> QuickTime a [Prop]) -> Signal ()
-start = start' def
 
 finish :: QuickTime a ()
 finish = lift $ mail stateMachineAddr tail
