@@ -24,6 +24,7 @@ import qualified Data.Text as T
 data MenuItem = MenuItem
     { itemLabel :: String
     , itemAction :: Signal ()
+    -- TODO(sandy): need support for disabled
     }
 
 data Menu = Menu

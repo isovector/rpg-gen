@@ -12,7 +12,6 @@ module RPG.Logic.QuickTime
     , sinceState
     , sinceStarting
     , lift
-    , QuickTime
     ) where
 
 import Control.Lens
@@ -24,8 +23,6 @@ import Game.Sequoia.Keyboard
 import RPG.Core
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce
-
-type QuickTime s a = StateT s Signal a
 
 data StackFrame a = StackFrame
     { _sfEvent :: Maybe Int -> QuickTime a [Prop]

@@ -7,7 +7,6 @@ module RPG.Core
     , module Control.Lens
     , module Control.Monad
     , module Data.Some
-    , def
     , Map
     , rgb
     , rgba
@@ -25,74 +24,37 @@ module RPG.Core
     , actor
     , propActor
     , propAddr
-    , ActorId (..)
     , Actor (..)
     , hp
     , mp
     , team
     , Team
+    , Target (..)
+    , AttackParams (..)
+    , Attack
+    , QuickTime
+    , Weapon (..)
     ) where
 
 import Control.Applicative
 import Control.Lens
 import Control.Lens.TH
 import Control.Monad
-import Data.Default
-import Data.Function (on)
 import Data.Map (Map)
 import Data.Maybe (isJust)
 import Data.Some
 import Game.Sequoia
 import Game.Sequoia.Color (rgb, rgba)
+import RPG.Internal
 
-newtype Loc = Loc Int
-    deriving (Eq, Show, Ord)
-
-data Interaction = Teleport Loc Int
-    deriving (Eq, Show)
-
-newtype ActorId = ActorId Int
-    deriving (Eq, Show, Ord)
-
-type Team = Int
-
-data Actor = Actor
-    { _hp :: Int
-    -- , maxHp :: Int
-    , _mp :: Int
-    -- , maxMp :: Int
-    , _team :: Team
-    } deriving (Show, Eq)
 $(makeLenses ''Actor)
-
-data Tag = Tag
-    { _hasCollision :: Bool
-    , _isFloor      :: Bool
-    , _propKey      :: Maybe Int
-    , _interaction  :: Maybe Interaction
-    , _propAddr     :: Maybe (Address (Prop' Tag))
-    , _propActor    :: Maybe Actor
-    }
 $(makeLenses ''Tag)
-
-instance Eq Tag where
-    t1 == t2 = let f g = on (==) g t1 t2
-                in all id [ f _hasCollision
-                          , f _isFloor
-                          , f _propKey
-                          , f _propActor
-                          ]
 
 tagL :: Lens' Prop Tag
 tagL = lens getTag $ flip tag
 
 actor :: Setter' Prop Actor
 actor = tagL.propActor._Just
-
-type Prop = Prop' Tag
-
-instance Default Tag where
-    def = Tag False False Nothing Nothing Nothing Nothing
 
 hasInteraction :: Tag -> Bool
 hasInteraction = isJust . _interaction

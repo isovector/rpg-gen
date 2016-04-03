@@ -1,10 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 module RPG.Logic.Combat.Types
     ( Effects (..)
-    , Target (..)
-    , AttackParams (..)
-    , Weapon (..)
-    , Attack
     , runEffects
     ) where
 
@@ -18,28 +14,9 @@ import RPG.Core
 import RPG.Logic.QuickTime
 import qualified Data.Map as M
 
-data Weapon a = Weapon
-    { range :: Double
-    , cost :: Actor -> Actor
-    , isTargetable :: Actor -> Actor -> Bool
-    , action :: Attack a
-    }
-
 data Effects = Effects
     { managedProps :: Signal [Prop]
     , stillRunning :: Signal Bool
-    }
-
-data Target = Target
-    { who :: Actor
-    , address :: Address Prop
-    , isOccluded :: Bool
-    }
-
-data AttackParams = AttackParams
-    { src :: Actor
-    , targets :: [Target]
-    , environment :: [Prop]
     }
 
 -- TODO(sandy): maybe split this up to run in Signal?
@@ -49,8 +26,6 @@ runEffects s e = do
     if running
        then lift $ managedProps e
        else setState s >> return []
-
-type Attack a = AttackParams -> Int -> QuickTime a ()
 
 partitionActors :: Prop -> [Prop] -> ([Target], [Prop])
 partitionActors me ps = first (map toTarget)
@@ -69,13 +44,12 @@ partitionActors me ps = first (map toTarget)
                      . sweepLine ps pos
                      . posDif pos
                      $ center p
-         in Target a addr occluded
-
+         in Target a pos addr occluded
 
 sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     0 -> do
-        lift . forM_ (targets params) $ \target ->
+        lift . forM_ (targeted params) $ \target ->
             mail (address target) . over (actor.hp)
                                   $ subtract dmg
         finish
