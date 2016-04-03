@@ -23,6 +23,7 @@ module RPG.Core
     , hasInteraction
     , hasActor
     , actor
+    , propActor
     , propAddr
     , ActorId (..)
     , Actor (..)
@@ -70,7 +71,7 @@ data Tag = Tag
     , _propKey      :: Maybe Int
     , _interaction  :: Maybe Interaction
     , _propAddr     :: Maybe (Address (Prop' Tag))
-    , _actor        :: Maybe Actor
+    , _propActor    :: Maybe Actor
     }
 $(makeLenses ''Tag)
 
@@ -79,11 +80,14 @@ instance Eq Tag where
                 in all id [ f _hasCollision
                           , f _isFloor
                           , f _propKey
-                          , f _actor
+                          , f _propActor
                           ]
 
 tagL :: Lens' Prop Tag
 tagL = lens getTag $ flip tag
+
+actor :: Setter' Prop Actor
+actor = tagL.propActor._Just
 
 type Prop = Prop' Tag
 
@@ -94,5 +98,5 @@ hasInteraction :: Tag -> Bool
 hasInteraction = isJust . _interaction
 
 hasActor :: Tag -> Bool
-hasActor = isJust . _actor
+hasActor = isJust . _propActor
 

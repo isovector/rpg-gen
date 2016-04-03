@@ -15,7 +15,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.List (partition)
 import Data.Function (on)
 import RPG.Core
-import RPG.Logic.Actor
 import RPG.Logic.QuickTime
 import qualified Data.Map as M
 
@@ -59,7 +58,7 @@ partitionActors me ps = first (map toTarget)
   where
     toTarget p =
         let a = maybe (error "not an actor") id
-              . view actor
+              . view propActor
               $ getTag p
             addr = maybe (error "doesn't have an addr") id
                  . view propAddr
@@ -77,7 +76,7 @@ sword :: Int -> Weapon ()
 sword dmg = Weapon 30 id (on (/=) _team) $ \params -> \case
     0 -> do
         lift . forM_ (targets params) $ \target ->
-            mail (address target) . over (tagL.actor._Just.hp)
+            mail (address target) . over (actor.hp)
                                   $ subtract dmg
         finish
 
