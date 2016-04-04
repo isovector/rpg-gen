@@ -1,9 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE Rank2Types #-}
 module RPG.Logic.Combat.Types
-    ( Effects (..)
-    , runEffects
-    , makeActor
+    ( makeActor
     , sword
     , partitionActors
     ) where
@@ -18,19 +16,6 @@ import Data.Maybe (fromJust)
 import RPG.Core
 import RPG.Logic.QuickTime
 import qualified Data.Map as M
-
-data Effects = Effects
-    { managedProps :: Signal [Prop]
-    , stillRunning :: Signal Bool
-    }
-
--- TODO(sandy): maybe split this up to run in Signal?
-runEffects :: Int -> Effects -> QuickTime a [Prop]
-runEffects s e = do
-    running <- lift $ stillRunning e
-    if running
-       then lift $ managedProps e
-       else setState s >> return []
 
 partitionActors :: Prop -> [Prop] -> ([Target], [Prop])
 partitionActors me ps = first (map toTarget)
