@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE Rank2Types #-}
@@ -23,6 +25,20 @@ import Game.Sequoia.Keyboard
 import RPG.Core
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce
+
+data Improved = forall a. Improved
+    { _running :: Bool
+    , _run  :: Improved -> Signal (Improved, [Prop])
+    , _update :: StateT a Signal (Bool, [Prop])
+    , _data    :: a
+    }
+
+mkImproved :: a -> StateT a Signal (Bool, [Prop]) -> Improved
+mkImproved a t = Improved True run t a
+  where
+    run Improved{..} = do
+        ((r, a'), s) <- runStateT _update _data
+        return (Improved r run _update s, a')
 
 data StackFrame a = StackFrame
     { _sfEvent :: Maybe Int -> QuickTime a [Prop]
