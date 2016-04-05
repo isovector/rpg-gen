@@ -36,6 +36,8 @@ module RPG.Core
     , Attack
     , QuickTime
     , Weapon (..)
+    , Machine (..)
+    , machine
     ) where
 
 import Control.Applicative
@@ -43,6 +45,7 @@ import Control.Lens
 import Control.Lens.TH
 import Control.Monad
 import Control.Monad.IfElse (whenM, untilM, return')
+import Control.Monad.State hiding (state)
 import Data.Map (Map)
 import Data.Maybe (isJust)
 import Data.Some
@@ -64,4 +67,13 @@ hasInteraction = isJust . _interaction
 
 hasActor :: Tag -> Bool
 hasActor = isJust . _propActor
+
+machine :: s -> StateT s Signal (Bool, a) -> Machine a
+machine s t = Machine run t s
+  where
+    continuing True = Just
+    continuing _    = const Nothing
+    run = do
+        ((r, a'), s') <- runStateT t s
+        return (continuing r $ machine s' t, a')
 

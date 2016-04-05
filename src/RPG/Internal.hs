@@ -1,3 +1,4 @@
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 module RPG.Internal
     ( Prop
@@ -6,6 +7,7 @@ module RPG.Internal
     , Target (..)
     , Team
     , QuickTime
+    , Machine (..)
     , Attack
     , AttackParams (..)
     , Weapon (..)
@@ -40,7 +42,13 @@ type Team = Int
 
 type QuickTime s a = StateT s Signal a
 
-type Attack a = AttackParams -> Maybe Int -> QuickTime a [Prop]
+data Machine a = forall s. Machine
+    { _run    :: Signal (Maybe (Machine a), a)
+    , _update :: StateT s Signal (Bool, a)
+    , _data   :: s
+    }
+
+type Attack = AttackParams -> Machine [Prop]
 
 data AttackParams = AttackParams
     { src :: Actor
@@ -52,7 +60,7 @@ data Weapon a = Weapon
     { range :: Double
     , cost :: Actor -> Actor
     , isTargetable :: Actor -> Actor -> Bool
-    , action :: Attack a
+    , action :: Attack
     }
 
 data Actor = Actor
