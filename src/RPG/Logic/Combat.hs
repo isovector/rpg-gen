@@ -35,14 +35,21 @@ data CombatData = CombatData
     , _curSelection :: Int
     , _targets      :: [Target]
     , _state        :: CombatState
+    , _stateTime    :: Time
     }
 $(makeLenses ''CombatData)
+
+{-# NOINLINE combatState #-}
+{-# NOINLINE combatStateAddr #-}
+combatState :: Signal CombatState
+(combatState, combatStateAddr) = newMailbox "combat state" CSMenu
+combatStateMsg = edges combatState
 
 actionMenu :: Menu
 actionMenu = Menu
     { _menuSelected = 0
-    , _menuItems = [ MenuItem "Move"   $ return () -- setState' MovePrep
-                   , MenuItem "Attack" $ return () -- setState' AttackInit
+    , _menuItems = [ MenuItem "Move"   $ setState' MovePrep
+                   , MenuItem "Attack" $ setState' AttackInit
                    ]
     }
 
@@ -62,16 +69,30 @@ floating p = do
     return $ move (mkRel 0 . (* 10) . cos $ 4 * t) p
 
 setState :: CombatState -> StateT CombatData Signal ()
-setState s = modify $ state .~ s
+setState s = do
+    now <- lift time
+    modify $ (stateTime .~ now)
+           . (state .~ s)
+
+sinceState :: StateT CombatData Signal Time
+sinceState = (-) <$> lift time <*> gets _stateTime
+
+-- TODO(sandy): eq instance is KILLIN ME baby
+setState' :: CombatState -> Signal ()
+setState' = mail combatStateAddr . const
 
 startCombat :: Signal [Prop] -> Signal Prop -> Signal ()
 startCombat pss players = do
+    now <- time
     mail menuAddr $ const actionMenu
     mail inputFilterAddr $ const NoneFilter
-    start $ combat pss players
+    start $ combat now pss players
 
-combat :: Signal [Prop] -> Signal Prop -> Machine [Prop]
-combat pss players = machine (CombatData 0 0 [] CSMenu) $ do
+combat :: Time -> Signal [Prop] -> Signal Prop -> Machine [Prop]
+combat now pss players = machine (CombatData 0 0 [] CSMenu now) $ do
+    lift combatStateMsg >>= \case
+        Changed cs  -> setState cs
+        Unchanged _ -> return ()
     cd     <- get
     ps     <- lift pss
     player <- lift players
@@ -97,14 +118,14 @@ combat pss players = machine (CombatData 0 0 [] CSMenu) $ do
         since <- sinceState
         when (since >= 0.2) $ do
             lift . mail inputFilterAddr $ const GameFilter
-            setState Move
+            lift $ setState' Move
         continue []
 
     | s == Move = do
         since <- sinceState
         when (since >= 1) $ do
             lift . mail inputFilterAddr $ const NoneFilter
-            setState CSMenu
+            lift $ setState' CSMenu
         continue []
 
     | s == AttackInit = do
@@ -112,11 +133,10 @@ combat pss players = machine (CombatData 0 0 [] CSMenu) $ do
             w  = view weapon a
             ts = sortBy (on compare (fst . unpackPos . location))
                     . filter (isTargetable w a . who)
-                    . showTrace
                     . fst
                     $ partitionActors player ps
         modify $ targets .~ ts
-        setState AttackSelect
+        lift $ setState' AttackSelect
         continue []
 
     | s == AttackSelect = do
@@ -125,18 +145,16 @@ combat pss players = machine (CombatData 0 0 [] CSMenu) $ do
             sel  = view toroidSel st
             t    = ts !! sel
             pos = location t
-        selected <- lift $ keyPress SpaceKey
 
         whenM (lift $ keyPress RightKey) . modify $ over toroidSel (+1)
         whenM (lift $ keyPress LeftKey)  . modify $ over toroidSel (subtract 1)
-
-        when selected $ do
+        whenM (lift $ keyPress SpaceKey) $ do
             let a  = view actor' player
                 w  = view weapon a
-            setState CSMenu
+            lift $ setState' CSMenu
             lift . start . action w $ AttackParams
                 { src         = a
-                , targeted    = [t]
+                , targeted    = showTrace $ [t]
                 , environment = ps
                 }
 

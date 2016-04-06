@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE RankNTypes #-}
 module RPG.Internal
     ( Prop
     , Loc (..)
@@ -56,7 +55,7 @@ data AttackParams = AttackParams
     , environment :: [Prop]
     }
 
-data Weapon a = Weapon
+data Weapon = Weapon
     { range :: Double
     , cost :: Actor -> Actor
     , isTargetable :: Actor -> Actor -> Bool
@@ -69,7 +68,7 @@ data Actor = Actor
     , _mp :: Int
     -- , maxMp :: Int
     , _team :: Team
-    , _weapon :: forall a. Weapon a
+    , _weapon :: Weapon
     }
 
 instance Eq Actor where

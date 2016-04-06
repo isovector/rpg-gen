@@ -3,7 +3,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
-import Unsafe.Coerce
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromJust)
 import Game.Sequoia.Color
@@ -91,8 +90,9 @@ main = do
     addScene loc city1
 
     mail' menuAddr $ const mainMenu
-    sampleAt 0 $ do
-        makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
+    sampleAt 0 . makeActor playerAddr
+               . Actor 100 100 0
+               $ sword 20
 
     sampleAt 1 $
         startCombat gameScene (fromJust <$> player)

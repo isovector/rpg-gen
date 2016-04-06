@@ -13,6 +13,7 @@ module RPG.Core
     , rgba
     , Prop
     , tagL
+    , headL
     , Interaction (..)
     , Loc (..)
     , Tag ()
@@ -58,6 +59,9 @@ $(makeLenses ''Tag)
 
 tagL :: Lens' Prop Tag
 tagL = lens getTag $ flip tag
+
+headL :: Lens' [a] a
+headL = lens head (\as a -> a : tail as)
 
 actor :: Setter' Prop Actor
 actor = tagL.propActor._Just
