@@ -1,9 +1,11 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Combat
-    ( combat
+    ( startCombat
     ) where
 
+import Control.Arrow (first, second)
 import Control.Lens
 import Control.Lens.TH
 import Control.Monad.State hiding (state)
@@ -21,24 +23,26 @@ import RPG.Logic.QuickTime
 import RPG.Logic.Combat.Types
 import RPG.Logic.Utils
 
-data CombatState = CombatState
+data CombatState = CSMenu
+                 | MovePrep
+                 | Move
+                 | AttackInit
+                 | AttackSelect
+                 deriving (Eq, Show, Ord, Enum)
+
+data CombatData = CombatData
     { _whoseTurn    :: Int
     , _curSelection :: Int
     , _targets      :: [Target]
+    , _state        :: CombatState
     }
-$(makeLenses ''CombatState)
-
-__MENU        = 0
-__MOVE_PREP   = 1
-__MOVE        = 2
-__ATTACK_INIT = 3
-__ATTACK_SEL  = 4
+$(makeLenses ''CombatData)
 
 actionMenu :: Menu
 actionMenu = Menu
     { _menuSelected = 0
-    , _menuItems = [ MenuItem "Move"   $ setState' __MOVE_PREP
-                   , MenuItem "Attack" $ setState' __ATTACK_INIT
+    , _menuItems = [ MenuItem "Move"   $ return () -- setState' MovePrep
+                   , MenuItem "Attack" $ return () -- setState' AttackInit
                    ]
     }
 
@@ -57,23 +61,23 @@ floating p = do
     t <- time
     return $ move (mkRel 0 . (* 10) . cos $ 4 * t) p
 
-combat :: Signal [Prop]
-       -> Signal Prop
-       -> Maybe Int
-       -> QuickTime CombatState [Prop]
-combat pss players Nothing = do
-    put $ CombatState 0 0 []
-    lift $ do
-        mail menuAddr $ const actionMenu
-        mail inputFilterAddr $ const NoneFilter
-    return []
-combat pss players (Just s) = do
-    cs     <- get
+setState :: CombatState -> StateT CombatData Signal ()
+setState s = modify $ state .~ s
+
+startCombat :: Signal [Prop] -> Signal Prop -> Signal ()
+startCombat pss players = do
+    mail menuAddr $ const actionMenu
+    mail inputFilterAddr $ const NoneFilter
+    start $ combat pss players
+
+combat :: Signal [Prop] -> Signal Prop -> Machine [Prop]
+combat pss players = machine (CombatData 0 0 [] CSMenu) $ do
+    cd     <- get
     ps     <- lift pss
     player <- lift players
 
-    case _whoseTurn cs of
-      0 -> myTurn ps player
+    case _whoseTurn cd of
+      0 -> myTurn ps player $ _state cd
       _ -> undefined
   where
    _Just' :: Lens' (Maybe a) a
@@ -82,28 +86,28 @@ combat pss players (Just s) = do
    actor' :: Lens' Prop Actor
    actor' = tagL.propActor._Just'
 
-   toroidSel :: Lens' CombatState Int
+   toroidSel :: Lens' CombatData Int
    toroidSel = torus targets curSelection
 
-   myTurn :: [Prop] -> Prop -> QuickTime CombatState [Prop]
-   myTurn ps player
-    | s == __MENU = lift $ runMenu
+   myTurn :: [Prop] -> Prop -> CombatState -> QuickTime CombatData (Bool, [Prop])
+   myTurn ps player s
+    | s == CSMenu = lift $ (True,) <$> runMenu
 
-    | s == __MOVE_PREP = do
+    | s == MovePrep = do
         since <- sinceState
         when (since >= 0.2) $ do
             lift . mail inputFilterAddr $ const GameFilter
-            setState __MOVE
-        return []
+            setState Move
+        continue []
 
-    | s == __MOVE = do
+    | s == Move = do
         since <- sinceState
         when (since >= 1) $ do
             lift . mail inputFilterAddr $ const NoneFilter
-            setState __MENU
-        return []
+            setState CSMenu
+        continue []
 
-    | s == __ATTACK_INIT = do
+    | s == AttackInit = do
         let a  = view actor' player
             w  = view weapon a
             ts = sortBy (on compare (fst . unpackPos . location))
@@ -112,10 +116,10 @@ combat pss players (Just s) = do
                     . fst
                     $ partitionActors player ps
         modify $ targets .~ ts
-        setState __ATTACK_SEL
-        return []
+        setState AttackSelect
+        continue []
 
-    | s == __ATTACK_SEL = do
+    | s == AttackSelect = do
         st <- get
         let ts   = view targets st
             sel  = view toroidSel st
@@ -129,7 +133,7 @@ combat pss players (Just s) = do
         when selected $ do
             let a  = view actor' player
                 w  = view weapon a
-            setState __MENU
+            setState CSMenu
             lift . start . action w $ AttackParams
                 { src         = a
                 , targeted    = [t]
@@ -140,5 +144,5 @@ combat pss players (Just s) = do
                   . move (mkRel 0 (-10))
                   . teleport pos
                   $ styled red defaultLine arrow
-        return [p]
+        continue [p]
 

@@ -94,8 +94,8 @@ main = do
     sampleAt 0 $ do
         makeActor playerAddr $ Actor 100 100 0 (unsafeCoerce $ sword 20)
 
-    sampleAt 1 $ do
-        start $ combat gameScene (fromJust <$> player)
+    sampleAt 1 $
+        startCombat gameScene (fromJust <$> player)
     run config gameSceneWQuickTimes
   where
     config = EngineConfig { windowTitle = "rpg-gen"

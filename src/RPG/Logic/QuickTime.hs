@@ -23,8 +23,6 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Default
 import Game.Sequoia.Keyboard
 import RPG.Core
-import System.IO.Unsafe (unsafePerformIO)
-import Unsafe.Coerce
 
 data StackFrame = StackFrame
     { _sfImproved  :: Machine [Prop]
