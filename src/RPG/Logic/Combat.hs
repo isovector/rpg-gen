@@ -3,6 +3,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Logic.Combat
     ( startCombat
+    , makeActor
+    , sword
     ) where
 
 import Control.Arrow (first, second)
@@ -11,7 +13,7 @@ import Control.Lens.TH
 import Control.Monad.State hiding (state)
 import Data.Default
 import Data.Function (on)
-import Data.List (sortBy)
+import Data.List (partition, sortBy)
 import Data.Maybe (fromJust)
 import Game.Sequoia.Color
 import Game.Sequoia.Keyboard
@@ -20,7 +22,6 @@ import RPG.Core
 import RPG.Logic.Input
 import RPG.Logic.Menu
 import RPG.Logic.QuickTime
-import RPG.Logic.Combat.Types
 import RPG.Logic.Utils
 
 data CombatState = CSMenu
@@ -38,6 +39,33 @@ data CombatData = CombatData
     , _stateTime    :: Time
     }
 $(makeLenses ''CombatData)
+
+partitionActors :: Prop -> [Prop] -> ([Target], [Prop])
+partitionActors me ps = first (map toTarget)
+                      $ partition (hasActor . getTag) ps
+  where
+    toTarget p =
+        let a = maybe (error "not an actor") id
+              . view propActor
+              $ getTag p
+            addr = maybe (error "doesn't have an addr") id
+                 . view propAddr
+                 $ getTag p
+            pos = center me
+            occluded = (1 <)
+                     . length
+                     . sweepLine ps pos
+                     . posDif pos
+                     $ center p
+         in Target a (center p) addr occluded
+
+makeActor :: Address (Maybe Prop) -> Actor -> Signal ()
+makeActor addr a = mail addr $ (_Just'.tagL.propActor .~ Just a)
+                             . (_Just'.tagL.propAddr  .~ Just (addr))
+
+_Just' :: Lens' (Maybe a) a
+_Just' = lens fromJust (const Just)
+
 
 {-# NOINLINE combatState #-}
 {-# NOINLINE combatStateAddr #-}
@@ -163,4 +191,14 @@ combat now pss players = machine (CombatData 0 0 [] CSMenu now) $ do
                   . teleport pos
                   $ styled red defaultLine arrow
         continue [p]
+
+-- TODO(sandy): move this elsewhere
+sword :: Int -> Weapon
+sword dmg = Weapon 30 id (on (/=) _team) $ \params ->
+    machine () $ do
+        lift . forM_ (targeted params) $ \target -> do
+            liftIO $ putStrLn "get damaged"
+            mail (address target) . over (_Just'.actor.hp)
+                                  $ subtract dmg
+        finish []
 

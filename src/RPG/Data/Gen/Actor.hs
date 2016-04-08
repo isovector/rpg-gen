@@ -7,7 +7,7 @@ import Control.Monad.IO.Class (liftIO)
 import RPG.Core
 import RPG.Data.Gen.Utils
 import RPG.Logic.Scene
-import RPG.Logic.Combat.Types (makeActor)
+import RPG.Logic.Combat (makeActor)
 import Game.Sequoia.Color
 
 actorGen :: Some (Signal (Maybe Prop))
