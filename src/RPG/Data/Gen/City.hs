@@ -12,6 +12,7 @@ import RPG.Data.Gen.Portal
 import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
 import qualified Data.Map as M
+import qualified System.Random.MWC as MWC
 
 data Size = Tiny | Small | Medium | Large | Huge
     deriving (Eq, Show, Ord, Enum)
@@ -23,14 +24,13 @@ data City = City
     , size    :: Size
     }
 
-whGen :: Size -> Some (Int, Int)
+whGen :: (Num a, MWC.Variate a) => Size -> Some (a, a)
 whGen s = do
     let wh = go s
     w <- uniformIn wh
     h <- uniformIn wh
     return (w, h)
   where
-    go :: Size -> (Int, Int)
     go Tiny   = (250, 350)
     go Small  = (350, 500)
     go Medium = (500, 700)
@@ -45,26 +45,29 @@ cityGen2 c loc = do
         delta  <- uniform 1 $ numHouses `div` 2
         return $ numHouses - delta
     (w, h) <- whGen s
-    return []
-
-
+    houses <- listOf numHouses $ houseGen loc
+    fmap join . forM houses $ \house -> do
+        xspread <- (/2) <$> uniformIn (-w, w)
+        yspread <- (/2) <$> uniformIn (-h, h)
+        return $ map (move $ mkRel xspread yspread) house
 
 cityGen :: Loc -> Some (Signal [Maybe Prop])
-cityGen loc = do
-    width  <- uniformIn (100, 200)
-    height <- uniformIn (100, 200)
-    house <- houseGen loc
-    surroundings <- surroundingsGen width height
-    actors <- listOf 5 actorGen
-    hdx <- (/ 1.5) <$> uniformIn (-width, width)
-    hdy <- (/ 1.5) <$> uniformIn (-height, height)
-    ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen
-                          (mkPos 150 (-80)) treeGen
-    return . sequence
-           $ fmap (return . Just) surroundings
-           -- ++ map (move (mkRel hdx hdy)) house
-           -- ++ fmap (return . Just) ecotone
-           ++ actors
+cityGen loc = fmap (return . fmap Just) $ cityGen2 (City True True Medium) loc
+    -- do
+    -- width  <- uniformIn (100, 200)
+    -- height <- uniformIn (100, 200)
+    -- house <- houseGen loc
+    -- surroundings <- surroundingsGen width height
+    -- actors <- listOf 5 actorGen
+    -- hdx <- (/ 1.5) <$> uniformIn (-width, width)
+    -- hdy <- (/ 1.5) <$> uniformIn (-height, height)
+    -- ecotone <- ecotoneGen (mkPos 100 (-80)) rockGen
+    --                       (mkPos 150 (-80)) treeGen
+    -- return . sequence
+    --        $ fmap (return . Just) surroundings
+    --        -- ++ map (move (mkRel hdx hdy)) house
+    --        -- ++ fmap (return . Just) ecotone
+    --        ++ actors
 
 surroundingsGen :: Double -> Double -> Some [Prop]
 surroundingsGen width' height' = do

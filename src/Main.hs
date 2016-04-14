@@ -93,8 +93,8 @@ main = do
                . Actor 100 100 0
                $ sword 20
 
-    sampleAt 1 $
-        startCombat gameScene (fromJust <$> player)
+    -- sampleAt 1 $
+    --     startCombat gameScene (fromJust <$> player)
     run config gameSceneWQuickTimes
   where
     config = EngineConfig { windowTitle = "rpg-gen"
