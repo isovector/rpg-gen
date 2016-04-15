@@ -48,8 +48,8 @@ cityGen2 c loc = do
     houses <- listOf numHouses $ houseGen loc
     fmap join . forM houses $ \house -> do
         xspread <- (/2) <$> uniformIn (-w, w)
-        yspread <- (/2) <$> uniformIn (-h, h)
-        return $ map (move $ mkRel xspread yspread) house
+        row <- (150 *) <$> uniformIn (0, numRows)
+        return $ map (move . mkRel xspread $ fromIntegral row) house
 
 cityGen :: Loc -> Some (Signal [Maybe Prop])
 cityGen loc = fmap (return . fmap Just) $ cityGen2 (City True True Medium) loc
