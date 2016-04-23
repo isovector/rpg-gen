@@ -31,7 +31,9 @@ executable rpg-gen
                        sequoia,
                        data-default,
                        text,
-                       IfElse
+                       IfElse,
+                       frpnow,
+                       extensible-effects
   hs-source-dirs:      src
   default-language:    Haskell2010
   main-is:             Main.hs
