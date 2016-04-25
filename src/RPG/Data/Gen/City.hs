@@ -6,8 +6,9 @@ module RPG.Data.Gen.City
 
 import Control.Monad.IO.Class (liftIO)
 import RPG.Core
-import RPG.Logic.Scene
-import RPG.Data.Gen.Actor
+import RPG.Scene
+import Control.Monad (forM, join)
+-- import RPG.Data.Gen.Actor
 import RPG.Data.Gen.Portal
 import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
@@ -51,8 +52,8 @@ cityGen2 c loc = do
         row <- (150 *) <$> uniformIn (0, numRows)
         return $ map (move . mkRel xspread $ fromIntegral row) house
 
-cityGen :: Loc -> Some (Signal [Maybe Prop])
-cityGen loc = fmap (return . fmap Just) $ cityGen2 (City True True Medium) loc
+cityGen :: Loc -> Some (B [Prop])
+cityGen = fmap return . cityGen2 (City True True Medium)
     -- do
     -- width  <- uniformIn (100, 200)
     -- height <- uniformIn (100, 200)
