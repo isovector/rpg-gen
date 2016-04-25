@@ -2,6 +2,8 @@
 module RPG.Data.Gen.City
     ( City (..)
     , cityGen
+    , houseGen
+    , locGen
     ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -25,6 +27,9 @@ data City = City
     , size    :: Size
     }
 
+locGen :: Some Loc
+locGen = Loc <$> uniformIn maxBound
+
 whGen :: (Num a, MWC.Variate a) => Size -> Some (a, a)
 whGen s = do
     let wh = go s
@@ -38,22 +43,22 @@ whGen s = do
     go Large  = (700, 900)
     go Huge   = (900, 1200)
 
-cityGen2 :: City -> Loc -> Some [Prop]
-cityGen2 c loc = do
+cityGen2 :: (Loc -> B [Prop] -> IO ()) -> City -> Loc -> Some [Prop]
+cityGen2 addScene c loc = do
     let s         = size c
         numHouses = fromEnum s * 2 + 3
     numRows <- do
         delta  <- uniform 1 $ numHouses `div` 2
         return $ numHouses - delta
     (w, h) <- whGen s
-    houses <- listOf numHouses $ houseGen loc
+    houses <- listOf numHouses $ houseGen addScene loc
     fmap join . forM houses $ \house -> do
         xspread <- (/2) <$> uniformIn (-w, w)
         row <- (150 *) <$> uniformIn (0, numRows)
         return $ map (move . mkRel xspread $ fromIntegral row) house
 
-cityGen :: Loc -> Some (B [Prop])
-cityGen = fmap return . cityGen2 (City True True Medium)
+cityGen :: (Loc -> B [Prop] -> IO ()) -> Loc -> Some (B [Prop])
+cityGen = (fmap return .) . flip cityGen2 (City True True Medium)
     -- do
     -- width  <- uniformIn (100, 200)
     -- height <- uniformIn (100, 200)
@@ -122,15 +127,13 @@ interiorGen width height portal = do
            , move (mkRel 0 yshift) portal
            ]
 
-houseGen :: Loc -> Some [Prop]
-houseGen loc = do
-    intLoc <- liftIO newLoc
+houseGen :: (Loc -> B [Prop] -> IO ()) -> Loc -> Some [Prop]
+houseGen addScene loc = do
+    intLoc <- locGen
     (p1, p2) <- portal loc intLoc
     interior <- interiorGen 200 200 p2
 
-    liftIO . addScene intLoc
-           . return
-           $ fmap Just interior
+    liftIO . addScene intLoc $ pure interior
 
     slatColor <- colorFuzz 0.2 grey
     roofColor <- colorFuzz 0.3 yellow
