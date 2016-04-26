@@ -10,7 +10,6 @@ import RPG.Core
 import RPG.Data.Gen.City
 import RPG.Player
 import RPG.Scene
-import Data.SG.Vector (getY)
 
 initialize :: Engine -> N (B [Prop])
 initialize engine = mdo

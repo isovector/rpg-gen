@@ -5,6 +5,3 @@
 * Respect weapon range
 * Target selection
 * Entering and leaving state controllers for quicktime
-
-SEQUOIA
-* expose x/y from SG in sequoia

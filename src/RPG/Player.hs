@@ -6,10 +6,11 @@ module RPG.Player
 
 import Control.Monad (forM_)
 import Data.Maybe (mapMaybe)
+import Control.FRPNow.EvStream
 import RPG.Core
 import RPG.Data.Gen.Player
 import Game.Sequoia.Color
-import Game.Sequoia.Keyboard (arrows)
+import Game.Sequoia.Keyboard (arrows, keyPress)
 
 withMailbox :: Prop
             -> (Prop -> N Prop)
@@ -36,16 +37,20 @@ newPlayer = do
 
     return $ do
         player <- sync $ pick playerGen
-        withMailbox player $ \p -> do
+        r@(sig, addr) <- withMailbox player $ \p -> do
             dt     <- sample clock
             dpos   <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             ps     <- sample scene
             let walls     = filter (_hasCollision . getTag) ps
                 floors    = filter (_isFloor      . getTag) ps
-                addr      = maybe (error "no box!") id . view box $ getTag p
-
-            forM_ (interactions ps p) ($ addr)
             return $ tryMove walls floors p dpos
+
+        onEvent (keyPress keys SpaceKey) . const $ do
+            p  <- sample sig
+            ps <- sample scene
+            forM_ (interactions ps p) ($ addr)
+
+        return r
 
 
 interactions :: [Prop]

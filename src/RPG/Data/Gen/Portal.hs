@@ -12,8 +12,7 @@ portal dst1 dst2 = do
     p2 <- portalGen
     let id1 = maybe undefined id . view propKey $ getTag p1
         id2 = maybe undefined id . view propKey $ getTag p2
-        -- f d i = tags (interaction .~ (Just $ Teleport d i))
-        f d i = id
+        f d i = tags (interaction .~ (Just $ sync . ($ move (mkRel 15 15))))
 
     return ( f dst2 id2 p1
            , f dst1 id1 p2
