@@ -25,8 +25,8 @@ newPlayer = do
         player <- sync $ pick playerGen
         foldmp player $ \sq -> do
             dt     <- sample clock
-            dpos   <- sample $ arrows keys
+            dpos   <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             walls  <- sample $ filter (_hasCollision . getTag) <$> scene
             floors <- sample $ filter (_isFloor      . getTag) <$> scene
-            return $ move (scaleRel (300 * dt) dpos) sq
+            return $ tryMove walls floors sq dpos
 

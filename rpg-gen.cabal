@@ -33,7 +33,8 @@ executable rpg-gen
                        text,
                        IfElse,
                        frpnow,
-                       extensible-effects
+                       extensible-effects,
+                       SG
   hs-source-dirs:      src
   default-language:    Haskell2010
   main-is:             Main.hs

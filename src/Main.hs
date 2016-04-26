@@ -3,11 +3,14 @@ module Main where
 
 import Control.Eff
 import Control.Eff.Reader.Lazy
+import Data.List (sortBy)
+import Data.Ord (comparing)
 import Game.Sequoia.Keyboard
 import RPG.Core
 import RPG.Data.Gen.City
 import RPG.Player
 import RPG.Scene
+import Data.SG.Vector (getY)
 
 initialize :: Engine -> N (B [Prop])
 initialize engine = mdo
@@ -22,5 +25,7 @@ initialize engine = mdo
                       $ newPlayer
     return $ (:) <$> sq <*> city
 
-main = play (EngineConfig (640, 480) "rpg-gen")
-            initialize return
+main = play
+    (EngineConfig (640, 480) "rpg-gen")
+    initialize $
+        return . fmap (sortBy $ comparing $ getY . center)

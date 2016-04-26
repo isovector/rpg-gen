@@ -7,4 +7,4 @@
 * Entering and leaving state controllers for quicktime
 
 SEQUOIA
-* rename first => soonest
+* expose x/y from SG in sequoia
