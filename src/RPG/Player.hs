@@ -12,7 +12,7 @@ import Game.Sequoia.Color
 import Game.Sequoia.Keyboard (arrows)
 
 withMailbox :: Prop
-            -> (Prop -> Now Prop)
+            -> (Prop -> N Prop)
             -> N ( B Prop
                  , (Prop -> Prop) -> IO ()
                  )
@@ -22,17 +22,17 @@ withMailbox p f = do
     return r
 
 
-newPlayer :: ( Has (Behavior Time)   r
-             , Has (Behavior [Key])  r
-             , Has (Behavior [Prop]) r
+newPlayer :: ( Has (B Time)   r
+             , Has (B [Key])  r
+             , Has (B [Prop]) r
              )
-          => Eff r (Now ( Behavior Prop
-                        , Address (Prop -> Prop)
-                        ))
+          => Eff r (N ( B Prop
+                      , Address (Prop -> Prop)
+                      ))
 newPlayer = do
-    (clock :: Behavior Time)   <- ask
-    (keys  :: Behavior [Key])  <- ask
-    (scene :: Behavior [Prop]) <- ask
+    (clock :: B Time)   <- ask
+    (keys  :: B [Key])  <- ask
+    (scene :: B [Prop]) <- ask
 
     return $ do
         player <- sync $ pick playerGen
@@ -50,9 +50,9 @@ newPlayer = do
 
 interactions :: [Prop]
              -> Prop
-             -> [((Prop -> Prop) -> IO ()) -> Now ()]
+             -> [((Prop -> Prop) -> IO ()) -> N ()]
 interactions ps p =
     mapMaybe (view interaction)
-           . map getTag
-           $ overlapping ps p
+        . map getTag
+        $ overlapping ps p
 

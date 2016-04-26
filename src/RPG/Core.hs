@@ -36,7 +36,7 @@ data Tag = Tag
     , _isFloor      :: Bool
     , _propKey      :: Maybe Int
     , _box          :: Maybe ((Prop -> Prop) -> IO ())
-    , _interaction  :: Maybe (((Prop -> Prop) -> IO ()) -> Now ())
+    , _interaction  :: Maybe (((Prop -> Prop) -> IO ()) -> N ())
     }
 $(makeLenses ''Tag)
 
