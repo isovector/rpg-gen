@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
@@ -6,6 +7,8 @@ module RPG.Core
     , hasCollision
     , isFloor
     , propKey
+    , box
+    , interaction
     , Has
     , Eff
     , Prop
@@ -32,10 +35,18 @@ data Tag = Tag
     { _hasCollision :: Bool
     , _isFloor      :: Bool
     , _propKey      :: Maybe Int
+    , _box          :: Maybe ((Prop -> Prop) -> IO ())
+    , _interaction  :: Maybe (((Prop -> Prop) -> IO ()) -> Now ())
     }
-    deriving (Eq, Show)
 $(makeLenses ''Tag)
 
+instance Show Tag where
+    show Tag{..} = concat [ "Tag "
+                          , show _hasCollision
+                          , show _isFloor
+                          , show _propKey
+                          ]
+
 instance Default Tag where
-    def = Tag False False $ Just 0
+    def = Tag False False Nothing Nothing Nothing
 
