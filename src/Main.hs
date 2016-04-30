@@ -6,6 +6,7 @@ import Control.Eff.Reader.Lazy
 import Data.List (sortBy)
 import Data.Ord (comparing)
 import Game.Sequoia.Keyboard
+import RPG.Collection
 import RPG.Core
 import RPG.Data.Gen.City
 import RPG.Player
