@@ -38,24 +38,24 @@ newPlayer = do
     return $ do
         player <- sync $ pick playerGen
         r@(sig, addr) <- withMailbox player $ \p -> do
-            dt     <- sample clock
-            dpos   <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
-            ps     <- sample scene
-            let walls     = filter (_hasCollision . getTag) ps
-                floors    = filter (_isFloor      . getTag) ps
+            dt   <- sample clock
+            dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
+            ps   <- sample scene
+            let walls  = filter (_hasCollision . getTag) ps
+                floors = filter (_isFloor      . getTag) ps
             return $ tryMove walls floors p dpos
 
         onEvent (keyPress keys SpaceKey) . const $ do
             p  <- sample sig
             ps <- sample scene
-            forM_ (interactions ps p) ($ addr)
+            sync $ forM_ (interactions ps p) id
 
         return r
 
 
 interactions :: [Prop]
              -> Prop
-             -> [((Prop -> Prop) -> IO ()) -> N ()]
+             -> [IO ()]
 interactions ps p =
     mapMaybe (view interaction)
         . map getTag

@@ -17,13 +17,13 @@ initialize engine = mdo
     clock      <- getElapsedClock
     keyboard   <- getKeyboard
     (curScene, addScene, setScene) <- newSceneGraph (Loc 0) city
-    city       <- sync . pick $ cityGen addScene (Loc 0)
+    city       <- sync . pick $ cityGen addScene setScene (Loc 0)
 
     (sq, addr) <- run . flip runReader clock
                       . flip runReader keyboard
                       . flip runReader curScene
                       $ newPlayer
-    return $ (:) <$> sq <*> city
+    return $ (:) <$> sq <*> curScene
 
 main = play
     (EngineConfig (640, 480) "rpg-gen")
