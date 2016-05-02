@@ -1,5 +1,5 @@
 module RPG.Collection
-    ( foldingE
+    ( scanle
     , newCollection
     ) where
 
@@ -10,20 +10,14 @@ import RPG.Core
 import Game.Sequoia.Utils
 import qualified Data.Map as M
 
--- TODO(sandy): this might be scanlEv
-foldingE :: (a -> b -> b)
-         -> b
-         -> N (B b, a -> IO ())
-foldingE f start = do
+scanle :: (a -> b -> b)
+       -> b
+       -> N (B b, a -> IO ())
+scanle f start = do
     (es, mb) <- callbackStream
-    b <- loop es start
+    folded   <- sample $ scanlEv (flip f) start es
+    b        <- sample $ fromChanges start folded
     return (b, mb)
-  where
-    loop es val = do
-        val' <- (sample $ nextAll es)
-                >>= return . fmap (foldr f val)
-        e <- planNow $ loop es <$> val'
-        return $ step val e
 
 newCollection :: Ord k
               => Map k v
@@ -31,6 +25,6 @@ newCollection :: Ord k
                    , k -> v -> IO ()
                    )
 newCollection start = do
-    (b, mb) <- foldingE (uncurry M.insert) start
+    (b, mb) <- scanle (uncurry M.insert) start
     return ((<$> b) . M.lookup, curry mb)
 

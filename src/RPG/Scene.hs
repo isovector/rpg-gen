@@ -6,7 +6,9 @@ module RPG.Scene
 import Control.Arrow
 import Control.Monad (join, liftM2)
 import Data.Map (Map)
+import Data.Maybe (fromJust)
 import RPG.Core
+import RPG.Collection
 import Game.Sequoia.Utils
 import qualified Data.Map as M
 
@@ -19,17 +21,13 @@ newSceneGraph :: Loc
               -> B [Prop]
               -> Now ( B [Prop]
                      , Loc -> B [Prop] -> IO ()
-                     , Address (Loc -> Loc)
+                     , Loc -> IO ()
                      )
 newSceneGraph startloc start = do
-    (graph, graphAddr) <- foldmp (M.singleton startloc start) return
-    (loc, locAddr)     <- foldmp startloc return
-    traceChanges "loc" loc
-    return ( currentScene graph loc
-           , (curry $ addScene graphAddr) . showTrace
-           , locAddr
+    (graph, addScene) <- newCollection $ M.singleton startloc start
+    (loc, setLoc)     <- scanle const startloc
+    return ( join . fmap fromJust $ loc >>= graph
+           , addScene
+           , setLoc
            )
-  where
-      addScene addr = addr . mappend . uncurry M.singleton
-      currentScene = (join .) . liftM2 (M.!)
 
