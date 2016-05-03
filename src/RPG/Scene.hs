@@ -8,7 +8,6 @@ import Control.Monad (join, liftM2)
 import Data.Map (Map)
 import Data.Maybe (fromJust)
 import RPG.Core
-import RPG.Collection
 import Game.Sequoia.Utils
 import qualified Data.Map as M
 

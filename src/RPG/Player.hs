@@ -28,7 +28,7 @@ newPlayer :: ( Has (B Time)   r
              , Has (B [Prop]) r
              )
           => Eff r (N ( B Prop
-                      , Address (Prop -> Prop)
+                      , (Prop -> Prop) -> IO ()
                       ))
 newPlayer = do
     (clock :: B Time)   <- ask

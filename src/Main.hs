@@ -7,7 +7,6 @@ import Data.List (sortBy)
 import Data.Ord (comparing)
 import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
-import RPG.Collection
 import RPG.Core
 import RPG.Data.Gen.City
 import RPG.Player
