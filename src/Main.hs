@@ -5,6 +5,7 @@ import Control.Eff
 import Control.Eff.Reader.Lazy
 import Data.List (sortBy)
 import Data.Ord (comparing)
+import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Collection
 import RPG.Core
@@ -23,7 +24,10 @@ initialize engine = mdo
                       . flip runReader keyboard
                       . flip runReader curScene
                       $ newPlayer
-    return $ (:) <$> sq <*> curScene
+    return $ do
+        p <- sq
+        scene <- curScene
+        return . focusing p $ p : scene
 
 main = play
     (EngineConfig (640, 480) "rpg-gen")
