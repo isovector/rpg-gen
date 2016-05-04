@@ -9,6 +9,7 @@ import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
 import RPG.Data.Gen.City
+import RPG.Menu
 import RPG.Player
 import RPG.Scene
 

@@ -17,11 +17,13 @@ module RPG.Core
     , module Game.Sequoia
     , module Data.Some
     , module Control.Lens
+    , module Control.Monad
     , Key (..)
     ) where
 
 import Control.Eff
 import Control.Eff.Reader.Lazy
+import Control.Monad
 import Control.Lens
 import Data.Default
 import Data.Some hiding (Event (..), never)
