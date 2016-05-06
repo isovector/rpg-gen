@@ -32,10 +32,9 @@ newMenuSet keys = do
     (curMenu, setMenu)  <- scanle const Nothing
     (select,  doSelect) <- scanle (+) 0
 
-    -- TODO(sandy): Find a way to abstract this over UpKey as well.
-    onEvent (keyPress keys DownKey) . const $ do
+    onEvent (change $ round . getY <$> arrows keys) $ \y -> do
         menuid <- sample curMenu
-        when (isJust menuid) . sync $ doSelect 1
+        when (isJust menuid) . sync $ doSelect y
 
     return
         ( do
