@@ -24,10 +24,10 @@ withMailbox p f = do
     return r
 
 
-newPlayer :: ( Has (B Time)   r
-             , Has (B [Key])  r
-             , Has (B [Prop]) r
-             , Has (B (Maybe MenuState)) r
+newPlayer :: ( Has (B Time)           r
+             , Has (B [Key])          r
+             , Has (B [Prop])         r
+             , Has (B (Maybe [Prop])) r
              )
           => Eff r (N ( B Prop
                       , (Prop -> Prop) -> IO ()
@@ -36,14 +36,18 @@ newPlayer = do
     (clock  :: B Time)   <- ask
     (keys   :: B [Key])  <- ask
     (scene  :: B [Prop]) <- ask
-    (menu   :: B (Maybe MenuState)) <- ask
+    (menu   :: B (Maybe [Prop])) <- ask
     let menuUp = isJust <$> menu
+    return $ traceChanges "up" menuUp
 
     return $ do
         player <- sync $ pick playerGen
+        up <- sample menuUp
         r@(sig, addr) <- withMailbox player $ \p -> do
             dt   <- sample clock
-            dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
+            dpos <- if up
+                       then fmap (scaleRel $ dt * 300) . sample $ arrows keys
+                       else return $ mkRel 0 0
             ps   <- sample scene
             let walls  = filter (_hasCollision . getTag) ps
                 floors = filter (_isFloor      . getTag) ps
