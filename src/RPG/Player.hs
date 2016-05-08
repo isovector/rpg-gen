@@ -4,13 +4,14 @@ module RPG.Player
     ( newPlayer
     ) where
 
-import Control.Monad (forM_)
-import Data.Maybe (mapMaybe)
 import Control.FRPNow.EvStream
-import RPG.Core
-import RPG.Data.Gen.Player
+import Control.Monad (forM_)
+import Data.Maybe (isJust, mapMaybe)
 import Game.Sequoia.Color
 import Game.Sequoia.Keyboard (arrows, keyPress)
+import RPG.Core
+import RPG.Data.Gen.Player
+import RPG.Menu
 
 withMailbox :: Prop
             -> (Prop -> N Prop)
@@ -26,14 +27,17 @@ withMailbox p f = do
 newPlayer :: ( Has (B Time)   r
              , Has (B [Key])  r
              , Has (B [Prop]) r
+             , Has (B (Maybe MenuState)) r
              )
           => Eff r (N ( B Prop
                       , (Prop -> Prop) -> IO ()
                       ))
 newPlayer = do
-    (clock :: B Time)   <- ask
-    (keys  :: B [Key])  <- ask
-    (scene :: B [Prop]) <- ask
+    (clock  :: B Time)   <- ask
+    (keys   :: B [Key])  <- ask
+    (scene  :: B [Prop]) <- ask
+    (menu   :: B (Maybe MenuState)) <- ask
+    let menuUp = isJust <$> menu
 
     return $ do
         player <- sync $ pick playerGen
@@ -48,7 +52,9 @@ newPlayer = do
         onEvent (keyPress keys SpaceKey) . const $ do
             p  <- sample sig
             ps <- sample scene
-            sync $ forM_ (interactions ps p) id
+            up <- sample menuUp
+            when (not up) .
+                sync $ forM_ (interactions ps p) id
 
         return r
 

@@ -15,14 +15,16 @@ import RPG.Scene
 
 initialize :: Engine -> N (B [Prop])
 initialize engine = mdo
-    clock      <- getElapsedClock
-    keyboard   <- getKeyboard
+    clock    <- getElapsedClock
+    keyboard <- getKeyboard
+    (menu, addMenu, setMenu) <- newMenuSet keyboard
     (curScene, addScene, setScene) <- newSceneGraph (Loc 0) city
-    city       <- sync . pick $ cityGen addScene setScene (Loc 0)
+    city     <- sync . pick $ cityGen addScene setScene (Loc 0)
 
     (sq, addr) <- run . flip runReader clock
                       . flip runReader keyboard
                       . flip runReader curScene
+                      . flip runReader menu
                       $ newPlayer
     return $ do
         p <- sq

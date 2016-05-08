@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module RPG.Menu
-    (
+    ( MenuItem (..)
+    , MenuState
+    , newMenuSet
     ) where
 
 import Data.Maybe (isJust)
