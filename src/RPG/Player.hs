@@ -34,20 +34,20 @@ newPlayer :: ( Has (B Time)           r
                       ))
 newPlayer = do
     (clock  :: B Time)   <- ask
-    (keys   :: B [Key])  <- ask
     (scene  :: B [Prop]) <- ask
-    (menu   :: B (Maybe [Prop])) <- ask
-    let menuUp = isJust <$> menu
-    return $ traceChanges "up" menuUp
+    keys <- do
+        (keyboard :: B [Key])          <- ask
+        (menu     :: B (Maybe [Prop])) <- ask
+        return $ ifThenElse
+              <$> fmap isJust menu
+              <*> return []
+              <*> keyboard
 
     return $ do
         player <- sync $ pick playerGen
-        up <- sample menuUp
         r@(sig, addr) <- withMailbox player $ \p -> do
             dt   <- sample clock
-            dpos <- if up
-                       then fmap (scaleRel $ dt * 300) . sample $ arrows keys
-                       else return $ mkRel 0 0
+            dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             ps   <- sample scene
             let walls  = filter (_hasCollision . getTag) ps
                 floors = filter (_isFloor      . getTag) ps
@@ -56,9 +56,7 @@ newPlayer = do
         onEvent (keyPress keys SpaceKey) . const $ do
             p  <- sample sig
             ps <- sample scene
-            up <- sample menuUp
-            when (not up) .
-                sync $ forM_ (interactions ps p) id
+            sync $ forM_ (interactions ps p) id
 
         return r
 
@@ -70,4 +68,9 @@ interactions ps p =
     mapMaybe (view interaction)
         . map getTag
         $ overlapping ps p
+
+
+ifThenElse :: Bool -> a -> a -> a
+ifThenElse True  x _ = x
+ifThenElse False _ y = y
 
