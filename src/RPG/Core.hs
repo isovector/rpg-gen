@@ -14,6 +14,7 @@ module RPG.Core
     , Prop
     , ask
     , def
+    , lift
     , module Game.Sequoia
     , module Data.Some
     , module Control.Lens
@@ -22,6 +23,7 @@ module RPG.Core
     ) where
 
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.Reader.Lazy
 import Control.Monad
 import Control.Lens

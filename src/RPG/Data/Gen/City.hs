@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module RPG.Data.Gen.City
     ( City (..)
@@ -89,14 +91,16 @@ surroundingsGen width' height' = do
         height = height' * 2
     obstacleGen <- uniformly [treeGen, rockGen]
     numTrees <- uniformIn (50, 150)
-    trees <- listOf numTrees obstacleGen
+    -- TODO(sandy): bug here
+    trees <- listOf numTrees $ pure obstacleGen
 
     forM trees $ \tree -> do
-        (xoffset', yoffset') <- uniformly [ (-1,  0)
-                                          , ( 1,  0)
-                                          , ( 0, -1)
-                                          , ( 0,  1)
-                                          ]
+        (xoffset', yoffset') <- uniformly . fmap pure
+                                          $ [ (-1,  0)
+                                            , ( 1,  0)
+                                            , ( 0, -1)
+                                            , ( 0,  1)
+                                            ]
         let xoffset = xoffset' * width'
             yoffset = yoffset' * height'
         xspread <-
@@ -111,9 +115,9 @@ surroundingsGen width' height' = do
 
 transitionGen :: Some a -> Some a -> Double -> Some a
 transitionGen a b weight =
-    join $ weighted [ (a, 1 - weight)
-                    , (b, weight)
-                    ]
+    weighted [ (a, 1 - weight)
+             , (b, weight)
+             ]
 
 interiorGen :: Double -> Double -> Prop -> Some [Prop]
 interiorGen width height portal = do
@@ -193,8 +197,10 @@ ecotoneGen src srcGen dst dstGen = do
         dist    = distance src dst
         dir     = scaleRel 40 $ posDif dst src
         size    = mag dir / 20
-        numObs  = round $ size
+        numObs :: Int
+        numObs  = round size
         samples = map ((/size) . fromIntegral) [0..numObs]
+        obsGen :: Double -> Some Prop
         obsGen  = transitionGen srcGen dstGen
     forM samples $ \sample -> do
         obs <- obsGen sample
