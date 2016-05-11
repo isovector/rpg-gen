@@ -57,6 +57,12 @@ weighted ws = do
     v <- (`mod` length ws) <$> int
     fst $ ws !! v
 
+weighted' :: [(a, Double)] -> Some a
+-- TODO(sandy): this isn't weighted
+weighted' ws = do
+    v <- (`mod` length ws) <$> int
+    return . fst $ ws !! v
+
 constrain :: Lens a a v v
           -> Some a
           -> Some v
