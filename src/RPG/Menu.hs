@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+
 module RPG.Menu
     ( MenuId (..)
     , MenuItem (..)

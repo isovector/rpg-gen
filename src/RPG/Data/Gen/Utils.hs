@@ -1,5 +1,6 @@
-{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Rank2Types #-}
+
 module RPG.Data.Gen.Utils
     ( colorGen
     , colorFuzz
