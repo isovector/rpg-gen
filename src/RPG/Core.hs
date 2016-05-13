@@ -15,6 +15,7 @@ module RPG.Core
     , ask
     , def
     , lift
+    , liftIO
     , module Game.Sequoia
     , module Data.Some
     , module Control.Lens
@@ -26,6 +27,7 @@ import Control.Eff
 import Control.Eff.Lift
 import Control.Eff.Reader.Lazy
 import Control.Monad
+import Control.Monad.IO.Class (liftIO)
 import Control.Lens
 import Data.Default
 import Data.Some hiding (Event (..), never)
@@ -40,7 +42,7 @@ data Tag = Tag
     , _isFloor      :: Bool
     , _propKey      :: Maybe Int
     , _box          :: Maybe ((Prop -> Prop) -> IO ())
-    , _interaction  :: Maybe (IO ())
+    , _interaction  :: Maybe (Now ())
     }
 $(makeLenses ''Tag)
 

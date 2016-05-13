@@ -10,7 +10,6 @@ module RPG.Data.Gen.City
     , locGen
     ) where
 
-import Control.Monad.IO.Class (liftIO)
 import RPG.Core
 import RPG.Scene
 import Control.Monad (forM, join)
@@ -51,6 +50,8 @@ whGen s = do
 cityGen2 :: ( Some r
             , Has (Loc -> B [Prop] -> IO ()) r
             , Has (Loc -> IO ()) r
+            , Has (Int -> Prop -> IO ()) r
+            , Has (Int -> B (Maybe Prop)) r
             )
          => City
          -> Loc
@@ -71,6 +72,8 @@ cityGen2 c loc = do
 cityGen :: ( Some r
            , Has (Loc -> B [Prop] -> IO ()) r
            , Has (Loc -> IO ()) r
+           , Has (Int -> Prop -> IO ()) r
+           , Has (Int -> B (Maybe Prop)) r
            )
         => Loc
         -> Eff r (B [Prop])
@@ -148,6 +151,8 @@ interiorGen width height portal = do
 houseGen :: ( Some r
             , Has (Loc -> B [Prop] -> IO ()) r
             , Has (Loc -> IO ()) r
+            , Has (Int -> Prop -> IO ()) r
+            , Has (Int -> B (Maybe Prop)) r
             )
          => Loc
          -> Eff r [Prop]

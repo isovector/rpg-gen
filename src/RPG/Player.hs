@@ -57,14 +57,14 @@ newPlayer = do
         onEvent (keyPress keys SpaceKey) . const $ do
             p  <- sample sig
             ps <- sample scene
-            sync $ forM_ (interactions ps p) id
+            forM_ (interactions ps p) id
 
         return r
 
 
 interactions :: [Prop]
              -> Prop
-             -> [IO ()]
+             -> [Now ()]
 interactions ps p =
     mapMaybe (view interaction)
         . map getTag

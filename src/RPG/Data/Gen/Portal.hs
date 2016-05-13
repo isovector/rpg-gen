@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module RPG.Data.Gen.Portal
     ( portal
@@ -12,17 +13,27 @@ import RPG.Scene
 
 portal :: ( Some r
           , Has (Loc -> IO ()) r
+          , Has (Int -> Prop -> IO ()) r
+          , Has (Int -> B (Maybe Prop)) r
           )
        => Loc
        -> Loc
        -> Eff r (Prop, Prop)
 portal dst1 dst2 = do
-    setLoc <- ask
+    (setLoc       :: Loc -> IO ())          <- ask
+    (findProp     :: Int -> B (Maybe Prop)) <- ask
+    (registerProp :: Int -> Prop -> IO ())  <- ask
     p1 <- portalGen
     p2 <- portalGen
     let id1 = maybe undefined id . view propKey $ getTag p1
         id2 = maybe undefined id . view propKey $ getTag p2
-        f d i = tags $ interaction .~ Just (setLoc $ showTrace d)
+        f d i = tags . set interaction . Just $ do
+            pos <- fmap (maybe origin center) . sample $ findProp i
+            liftIO $ setLoc d
+
+    liftIO $ do
+        registerProp id1 p1
+        registerProp id2 p2
 
     return ( f dst2 id2 p1
            , f dst1 id1 p2
