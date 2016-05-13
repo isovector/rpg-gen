@@ -9,12 +9,14 @@ import Game.Sequoia.Utils
 import RPG.Core
 import RPG.Scene
 
-portal :: Some r
-       => (Loc -> IO ())
-       -> Loc
+portal :: ( Some r
+          , Has (Loc -> IO ()) r
+          )
+       => Loc
        -> Loc
        -> Eff r (Prop, Prop)
-portal setLoc dst1 dst2 = do
+portal dst1 dst2 = do
+    setLoc <- ask
     p1 <- portalGen
     p2 <- portalGen
     let id1 = maybe undefined id . view propKey $ getTag p1

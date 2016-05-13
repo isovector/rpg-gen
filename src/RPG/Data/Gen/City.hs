@@ -47,32 +47,34 @@ whGen s = do
     go Large  = (700, 900)
     go Huge   = (900, 1200)
 
-cityGen2 :: Some r
-         => (Loc -> B [Prop] -> IO ())
-         -> (Loc -> IO ())
-         -> City
+cityGen2 :: ( Some r
+            , Has (Loc -> B [Prop] -> IO ()) r
+            , Has (Loc -> IO ()) r
+            )
+         => City
          -> Loc
          -> Eff r [Prop]
-cityGen2 addScene setScene c loc = do
+cityGen2 c loc = do
     let s         = size c
         numHouses = fromEnum s * 2 + 3
     numRows <- do
         delta  <- uniform 1 $ numHouses `div` 2
         return $ numHouses - delta
     (w, h) <- whGen s
-    houses <- listOf numHouses $ houseGen addScene setScene loc
+    houses <- listOf numHouses $ houseGen loc
     fmap join . forM houses $ \house -> do
         xspread <- (/2) <$> uniformIn (-w, w)
         row <- (150 *) <$> uniformIn (0, numRows)
         return $ map (move . mkRel xspread $ fromIntegral row) house
 
-cityGen :: Some r
-        => (Loc -> B [Prop] -> IO ())
-        -> (Loc -> IO ())
-        -> Loc
+cityGen :: ( Some r
+           , Has (Loc -> B [Prop] -> IO ()) r
+           , Has (Loc -> IO ()) r
+           )
+        => Loc
         -> Eff r (B [Prop])
-cityGen addScene setScene loc =
-    fmap return $ cityGen2 addScene setScene (City True True Medium) loc
+cityGen loc =
+    fmap return $ cityGen2 (City True True Medium) loc
     -- do
     -- width  <- uniformIn (100, 200)
     -- height <- uniformIn (100, 200)
@@ -142,14 +144,16 @@ interiorGen width height portal = do
            , move (mkRel 0 yshift) portal
            ]
 
-houseGen :: Some r
-         => (Loc -> B [Prop] -> IO ())
-         -> (Loc -> IO ())
-         -> Loc
+houseGen :: ( Some r
+            , Has (Loc -> B [Prop] -> IO ()) r
+            , Has (Loc -> IO ()) r
+            )
+         => Loc
          -> Eff r [Prop]
-houseGen addScene setLoc loc = do
+houseGen loc = do
+    (addScene :: Loc -> B [Prop] -> IO ()) <- ask
     intLoc <- locGen
-    (p1, p2) <- portal setLoc loc intLoc
+    (p1, p2) <- portal loc intLoc
     interior <- interiorGen 200 200 p2
 
     liftIO . addScene intLoc $ pure interior
