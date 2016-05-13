@@ -7,7 +7,7 @@ module RPG.Data.Gen.Player
 import Game.Sequoia.Color
 import RPG.Core
 
-playerGen :: Some Prop
+playerGen :: Some r => Eff r Prop
 playerGen = do
     color <- rgb <$> uniform 0 1
                  <*> uniform 0 1

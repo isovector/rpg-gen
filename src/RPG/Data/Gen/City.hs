@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -29,10 +30,11 @@ data City = City
     , size    :: Size
     }
 
-locGen :: Some Loc
+locGen :: Some r
+       => Eff r Loc
 locGen = Loc <$> uniformIn maxBound
 
-whGen :: (Num a, MWC.Variate a) => Size -> Some (a, a)
+whGen :: (Some r, Num a, MWC.Variate a) => Size -> Eff r (a, a)
 whGen s = do
     let wh = go s
     w <- uniformIn wh
@@ -45,11 +47,12 @@ whGen s = do
     go Large  = (700, 900)
     go Huge   = (900, 1200)
 
-cityGen2 :: (Loc -> B [Prop] -> IO ())
+cityGen2 :: Some r
+         => (Loc -> B [Prop] -> IO ())
          -> (Loc -> IO ())
          -> City
          -> Loc
-         -> Some [Prop]
+         -> Eff r [Prop]
 cityGen2 addScene setScene c loc = do
     let s         = size c
         numHouses = fromEnum s * 2 + 3
@@ -63,10 +66,11 @@ cityGen2 addScene setScene c loc = do
         row <- (150 *) <$> uniformIn (0, numRows)
         return $ map (move . mkRel xspread $ fromIntegral row) house
 
-cityGen :: (Loc -> B [Prop] -> IO ())
+cityGen :: Some r
+        => (Loc -> B [Prop] -> IO ())
         -> (Loc -> IO ())
         -> Loc
-        -> Some (B [Prop])
+        -> Eff r (B [Prop])
 cityGen addScene setScene loc =
     fmap return $ cityGen2 addScene setScene (City True True Medium) loc
     -- do
@@ -85,18 +89,17 @@ cityGen addScene setScene loc =
     --        -- ++ fmap (return . Just) ecotone
     --        ++ actors
 
-surroundingsGen :: Double -> Double -> Some [Prop]
+surroundingsGen :: Some r => Double -> Double -> Eff r [Prop]
 surroundingsGen width' height' = do
     let width = width' * 2
         height = height' * 2
     obstacleGen <- uniformly [treeGen, rockGen]
     numTrees <- uniformIn (50, 150)
     -- TODO(sandy): bug here
-    trees <- listOf numTrees $ pure obstacleGen
+    trees <- listOf numTrees obstacleGen
 
     forM trees $ \tree -> do
-        (xoffset', yoffset') <- uniformly . fmap pure
-                                          $ [ (-1,  0)
+        (xoffset', yoffset') <- uniformly $ [ (-1,  0)
                                             , ( 1,  0)
                                             , ( 0, -1)
                                             , ( 0,  1)
@@ -113,14 +116,13 @@ surroundingsGen width' height' = do
                else uniformIn (-50, 50)
         return $ move (mkRel (xoffset + xspread) (yoffset + yspread)) tree
 
--- TODO(sandy): i need a commit
-transitionGen :: Some a -> Some a -> Double -> Some a
+transitionGen :: Some r => Eff r a -> Eff r a -> Double -> Eff r a
 transitionGen a b weight =
-    weighted [ (a, 1 - weight)
-             , (b, weight)
-             ]
+    join $ weighted [ (a, 1 - weight)
+                    , (b, weight)
+                    ]
 
-interiorGen :: Double -> Double -> Prop -> Some [Prop]
+interiorGen :: Some r => Double -> Double -> Prop -> Eff r [Prop]
 interiorGen width height portal = do
     let depth = 40
         floor = rect origin (width + depth) (height + depth)
@@ -140,10 +142,11 @@ interiorGen width height portal = do
            , move (mkRel 0 yshift) portal
            ]
 
-houseGen :: (Loc -> B [Prop] -> IO ())
+houseGen :: Some r
+         => (Loc -> B [Prop] -> IO ())
          -> (Loc -> IO ())
          -> Loc
-         -> Some [Prop]
+         -> Eff r [Prop]
 houseGen addScene setLoc loc = do
     intLoc <- locGen
     (p1, p2) <- portal setLoc loc intLoc
@@ -192,7 +195,12 @@ houseGen addScene setLoc loc = do
            ]
 
 
-ecotoneGen :: Pos -> Some Prop -> Pos -> Some Prop -> Some [Prop]
+ecotoneGen :: Some r
+           => Pos
+           -> Eff r Prop
+           -> Pos
+           -> Eff r Prop
+           -> Eff r [Prop]
 ecotoneGen src srcGen dst dstGen = do
     let start   = posDif src origin
         dist    = distance src dst
@@ -201,13 +209,11 @@ ecotoneGen src srcGen dst dstGen = do
         numObs :: Int
         numObs  = round size
         samples = map ((/size) . fromIntegral) [0..numObs]
-        obsGen :: Double -> Some Prop
-        obsGen  = transitionGen srcGen dstGen
     forM samples $ \sample -> do
-        obs <- obsGen sample
+        obs <- transitionGen srcGen dstGen sample
         return $ move (start + scaleRel sample dir) obs
 
-rockGen :: Some Prop
+rockGen :: Some r => Eff r Prop
 rockGen = do
     color <- colorGen (0.3, 0.6) (0, 0.4) (0.3, 1)
     radius <- uniformIn (5, 15)
@@ -215,7 +221,7 @@ rockGen = do
            . filled color
            $ circle origin radius
 
-treeGen :: Some Prop
+treeGen :: Some r => Eff r Prop
 treeGen = do
     color <- colorGen (0.2, 0.4) (0.5, 1.0) (0, 0.3)
     width <- uniformIn (10, 30)

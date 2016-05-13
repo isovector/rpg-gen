@@ -9,10 +9,11 @@ import Game.Sequoia.Utils
 import RPG.Core
 import RPG.Scene
 
-portal :: (Loc -> IO ())
+portal :: Some r
+       => (Loc -> IO ())
        -> Loc
        -> Loc
-       -> Some (Prop, Prop)
+       -> Eff r (Prop, Prop)
 portal setLoc dst1 dst2 = do
     p1 <- portalGen
     p2 <- portalGen
@@ -24,7 +25,7 @@ portal setLoc dst1 dst2 = do
            , f dst1 id1 p2
            )
 
-portalGen :: Some Prop
+portalGen :: Some r => Eff r Prop
 portalGen = do
     idkey <- Just <$> int
     return . tags (propKey .~ idkey)

@@ -10,15 +10,13 @@ import Game.Sequoia.Color
 
 type Range = (Double, Double)
 
-colorGen :: Range -> Range -> Range -> Some Color
+colorGen :: Some r => Range -> Range -> Range -> Eff r Color
 colorGen r g b = rgb <$> uniformIn r <*> uniformIn g <*> uniformIn b
 
 clamp :: Double -> Double -> Double -> Double
 clamp l h v = max l $ min h v
 
-clampColor = clamp 0 1
-
-colorFuzz :: Double -> Color -> Some Color
+colorFuzz :: Some r => Double -> Color -> Eff r Color
 colorFuzz d (Color r g b a) = do
     dr <- uniformIn (-d, d)
     dg <- uniformIn (-d, d)
@@ -27,4 +25,6 @@ colorFuzz d (Color r g b a) = do
                   (clampColor $ g + dg)
                   (clampColor $ b + db)
                   a
+  where
+    clampColor = clamp 0 1
 
