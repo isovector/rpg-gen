@@ -6,6 +6,7 @@ module RPG.Data.Gen.Portal
     ( portal
     ) where
 
+import Data.IORef
 import Game.Sequoia.Color (yellow)
 import Game.Sequoia.Utils
 import RPG.Core
@@ -15,21 +16,26 @@ portal :: ( Some r
           , Has (Loc -> IO ()) r
           , Has (Int -> Prop -> IO ()) r
           , Has (Int -> B (Maybe Prop)) r
+          , Has (IORef ((Prop -> Prop) -> IO ())) r
           )
        => Loc
        -> Loc
        -> Eff r (Prop, Prop)
 portal dst1 dst2 = do
-    (setLoc       :: Loc -> IO ())          <- ask
-    (findProp     :: Int -> B (Maybe Prop)) <- ask
-    (registerProp :: Int -> Prop -> IO ())  <- ask
+    (setLoc       :: Loc -> IO ())            <- ask
+    (findProp     :: Int -> B (Maybe Prop))   <- ask
+    (registerProp :: Int -> Prop -> IO ())    <- ask
+    (movePlayerIO :: IORef ((Prop -> Prop) -> IO ())) <- ask
     p1 <- portalGen
     p2 <- portalGen
     let id1 = maybe undefined id . view propKey $ getTag p1
         id2 = maybe undefined id . view propKey $ getTag p2
         f d i = tags . set interaction . Just $ do
             pos <- fmap (maybe origin center) . sample $ findProp i
-            liftIO $ setLoc d
+            liftIO $ do
+                movePlayer <- readIORef movePlayerIO
+                setLoc d
+                movePlayer $ teleport pos
 
     liftIO $ do
         registerProp id1 p1

@@ -6,6 +6,7 @@ module Main where
 
 import Control.Eff
 import Control.Eff.Reader.Lazy
+import Data.IORef
 import Data.List (sortBy)
 import Data.Maybe (maybeToList)
 import Data.Ord (comparing)
@@ -30,11 +31,23 @@ initialize engine = mdo
      , registerProp :: Int -> Prop -> IO ()) <- newCollection M.empty
     (menu, addMenu, setMenu) <- newMenuSet keyboard
     (curScene, addScene, setScene) <- newSceneGraph (Loc 0) city
-    city     <- sync . pick . with addScene
-                            . with setScene
-                            . with findProp
-                            . with registerProp
-                            $ cityGen (Loc 0)
+
+    (ioRef :: IORef ((Prop -> Prop) -> IO ())) <- sync $ newIORef undefined
+
+    city <- sync . pick . with addScene
+                        . with setScene
+                        . with findProp
+                        . with registerProp
+                        . with ioRef
+                        $ cityGen (Loc 0)
+
+
+    (sq, addr) <- run . with clock
+                      . with keyboard
+                      . with curScene
+                      . with menu
+                      $ newPlayer
+    sync $ writeIORef ioRef addr
 
     sync $ do
         addMenu (MenuId 0)
@@ -43,11 +56,6 @@ initialize engine = mdo
             ]
         setMenu . Just $ MenuId 0
 
-    (sq, addr) <- run . with clock
-                      . with keyboard
-                      . with curScene
-                      . with menu
-                      $ newPlayer
     return $ do
         p <- sq
         scene <- curScene
