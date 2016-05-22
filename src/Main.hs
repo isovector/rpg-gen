@@ -41,7 +41,6 @@ initialize engine = mdo
                         . with ioRef
                         $ cityGen (Loc 0)
 
-
     (sq, addr) <- run . with clock
                       . with keyboard
                       . with curScene
@@ -59,7 +58,7 @@ initialize engine = mdo
     return $ do
         p <- sq
         scene <- curScene
-        let screen = focusing p $ p : scene
+        let screen = focusing p $ scene ++ [p]
         items <- join . maybeToList <$> menu
         return $ screen ++ items
 

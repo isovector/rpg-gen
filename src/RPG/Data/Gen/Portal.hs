@@ -16,7 +16,7 @@ portal :: ( Some r
           , Has (Loc -> IO ()) r
           , Has (Int -> Prop -> IO ()) r
           , Has (Int -> B (Maybe Prop)) r
-          , Has (IORef ((Prop -> Prop) -> IO ())) r
+          , HasIO ((Prop -> Prop) -> IO ()) r
           )
        => Loc
        -> Loc
@@ -38,6 +38,8 @@ portal dst1 dst2 = do
                 movePlayer $ teleport pos
 
     liftIO $ do
+        -- BUG(sandy): these are Prop not B Prop, so their position never
+        -- changes
         registerProp id1 p1
         registerProp id2 p2
 

@@ -53,7 +53,7 @@ cityGen2 :: ( Some r
             , Has (Loc -> IO ()) r
             , Has (Int -> Prop -> IO ()) r
             , Has (Int -> B (Maybe Prop)) r
-            , Has (IORef ((Prop -> Prop) -> IO ())) r
+            , HasIO ((Prop -> Prop) -> IO ()) r
             )
          => City
          -> Loc
@@ -76,7 +76,7 @@ cityGen :: ( Some r
            , Has (Loc -> IO ()) r
            , Has (Int -> Prop -> IO ()) r
            , Has (Int -> B (Maybe Prop)) r
-           , Has (IORef ((Prop -> Prop) -> IO ())) r
+           , HasIO ((Prop -> Prop) -> IO ()) r
            )
         => Loc
         -> Eff r (B [Prop])
@@ -156,7 +156,7 @@ houseGen :: ( Some r
             , Has (Loc -> IO ()) r
             , Has (Int -> Prop -> IO ()) r
             , Has (Int -> B (Maybe Prop)) r
-            , Has (IORef ((Prop -> Prop) -> IO ())) r
+            , HasIO ((Prop -> Prop) -> IO ()) r
             )
          => Loc
          -> Eff r [Prop]

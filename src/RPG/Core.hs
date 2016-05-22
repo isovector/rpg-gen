@@ -10,16 +10,18 @@ module RPG.Core
     , box
     , interaction
     , Has
+    , HasIO
     , Eff
     , Prop
     , ask
     , def
     , lift
     , liftIO
-    , module Game.Sequoia
-    , module Data.Some
     , module Control.Lens
     , module Control.Monad
+    , module Data.IORef
+    , module Data.Some
+    , module Game.Sequoia
     , Key (..)
     ) where
 
@@ -30,12 +32,14 @@ import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Control.Lens
 import Data.Default
+import Data.IORef (IORef (..), readIORef, writeIORef)
 import Data.Some hiding (Event (..), never)
 import Game.Sequoia
 import Game.Sequoia.Keyboard
 
 type Prop = Prop' Tag
 type Has t r = Member (Reader t) r
+type HasIO t r = Has (IORef t) r
 
 data Tag = Tag
     { _hasCollision :: Bool
