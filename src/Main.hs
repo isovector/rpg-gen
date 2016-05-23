@@ -51,7 +51,7 @@ initialize engine = do
             [ MenuItem "play game" $ setMenu Nothing
             , MenuItem "goodbye"   $ error "goodbye"
             ]
-        setMenu . Just $ MenuId 0
+        -- setMenu . Just $ MenuId 0
 
     return $ do
         p <- sq

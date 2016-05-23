@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module RPG.Data.Gen.City
     ( City (..)
@@ -11,11 +10,10 @@ module RPG.Data.Gen.City
     ) where
 
 import Control.Eff (run)
-import Data.IORef
 import RPG.Core
 import RPG.Scene
 import Control.Monad (forM, join)
--- import RPG.Data.Gen.Actor
+import RPG.Data.Gen.Person
 import RPG.Data.Gen.Portal
 import RPG.Data.Gen.Utils
 import Game.Sequoia.Color
@@ -140,6 +138,7 @@ interiorGen width height portal = do
         yshift = (height + depth) / 2
         xshift = (width + depth) / 2
         tag = tags $ hasCollision .~ True
+    who <- personDraw <$> personGen
 
     return [ tags (isFloor .~ True) $ filled red floor
            , tag . move (mkRel 0 (-yshift)) $ filled grey topWall
@@ -147,6 +146,7 @@ interiorGen width height portal = do
            , tag . move (mkRel xshift 0) $ filled grey sideWall
            , tag . move (mkRel (xshift / 2) yshift) $ filled grey botWall
            , tag . move (mkRel ((-xshift) / 2) yshift) $ filled grey botWall
+           , who
            , move (mkRel 0 yshift) portal
            ]
 
