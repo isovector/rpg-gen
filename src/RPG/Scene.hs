@@ -45,3 +45,16 @@ newSceneGraph = do
             Just y  -> fmap (fst <$>) (uncons <$> y)
             Nothing -> return Nothing
 
+newTimedCollection :: B Time
+                   -> Now ( B [a]
+                          , a -> Time -> IO ()
+                          )
+newTimedCollection clock = do
+    (col, add) <- foldmp [] $ \col -> do
+        dt <- sample clock
+        return . filter ((<= 0) . snd)
+               $ map (second $ subtract dt) col
+    return ( fmap fst <$> col
+           , \a dur -> add ((a, dur) :)
+           )
+
