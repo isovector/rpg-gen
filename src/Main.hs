@@ -27,9 +27,9 @@ initialize engine = do
     keyboard                 <- getKeyboard
     (menu, addMenu, setMenu) <- newMenuSet keyboard
     (  curScene
-     , findProp
      , addScene
-     , setScene) <- newSceneGraph
+     , setScene
+     , findProp) <- newSceneGraph
 
     (sq, addr) <- run . with clock
                       . with keyboard
