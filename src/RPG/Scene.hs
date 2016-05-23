@@ -33,22 +33,15 @@ newSceneGraph = do
            , setLoc
            )
   where
-    -- graph :: Loc -> B (Maybe (B [Prop]))
     getScene graph loc prop = do
-        (sceneMay :: Maybe (B [Prop])) <- graph loc
-        -- returns Maybe (B Prop)
-        let x = do
-             (scene :: B [Prop]) <- sceneMay
-             -- returns B Prop
-             return $ do
-                (props :: [Prop]) <- scene
-                return . filter ( maybe False (== prop)
-                                . view propKey
-                                . getTag)
-                       $ props
-        case x of
-          Just y  -> do
-              z <- uncons <$> y
-              return $ fst <$> z
-          Nothing -> return Nothing
+        sceneMay <- graph loc
+        case ( sceneMay >>= \scene ->
+            return $ do
+                scene >>= return . filter ( maybe False (== prop)
+                                          . view propKey
+                                          . getTag
+                                          )
+         ) of
+            Just y  -> fmap (fst <$>) (uncons <$> y)
+            Nothing -> return Nothing
 
