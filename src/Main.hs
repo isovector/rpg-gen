@@ -18,6 +18,8 @@ import RPG.Player
 import RPG.Scene
 import qualified Data.Map as M
 
+import Game.Sequoia.Color
+
 with :: Typeable e => e -> Eff (Reader e :> r) w -> Eff r w
 with = flip runReader
 
@@ -28,8 +30,13 @@ initialize engine = do
     (menu, addMenu, setMenu) <- newMenuSet keyboard
     (  curScene
      , addScene
-     , setScene
+     , setScene'
      , findProp) <- newSceneGraph
+
+    (  tmpScene :: B [Prop]
+     , addTmpObj
+     , clearTmp) <- newTimedCollection clock
+    let setScene = (clearTmp >>) . setScene'
 
     (sq, addr) <- run . with clock
                       . with keyboard
@@ -41,10 +48,11 @@ initialize engine = do
                         . with setScene
                         . with findProp
                         . with addr
+                        . with addTmpObj
                         $ cityGen (Loc 0)
 
     sync $ let loc = Loc 0
-            in addScene loc city >> setScene loc
+            in addScene loc city >> setScene' loc
 
     sync $ do
         addMenu (MenuId 0)
@@ -56,10 +64,12 @@ initialize engine = do
     return $ do
         p <- sq
         scene <- curScene
-        let screen = focusing p $ scene ++ [p]
+        tmp <- tmpScene
+        let screen = focusing p $ scene ++ [p] ++ tmp
         items <- join . maybeToList <$> menu
         return $ screen ++ items
 
 main = play
     (EngineConfig (640, 480) "rpg-gen")
     initialize return
+

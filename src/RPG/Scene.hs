@@ -3,6 +3,7 @@
 module RPG.Scene
     ( Loc (..)
     , newSceneGraph
+    , newTimedCollection
     ) where
 
 import Control.Arrow
@@ -45,16 +46,19 @@ newSceneGraph = do
             Just y  -> fmap (fst <$>) (uncons <$> y)
             Nothing -> return Nothing
 
+-- TODO(sandy): move to sequoia
 newTimedCollection :: B Time
                    -> Now ( B [a]
                           , a -> Time -> IO ()
+                          , IO ()
                           )
 newTimedCollection clock = do
     (col, add) <- foldmp [] $ \col -> do
         dt <- sample clock
-        return . filter ((<= 0) . snd)
+        return . filter ((> 0) . snd)
                $ map (second $ subtract dt) col
     return ( fmap fst <$> col
            , \a dur -> add ((a, dur) :)
+           , add (const [])
            )
 
