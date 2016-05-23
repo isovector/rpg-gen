@@ -52,6 +52,7 @@ cityGen2 :: ( Some r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
             , Has (Loc -> PropId -> B (Maybe Prop)) r
+            , Has (Prop -> Time -> IO ()) r
             )
          => City
          -> Loc
@@ -74,6 +75,7 @@ cityGen :: ( Some r
            , Has (Loc -> IO ()) r
            , Has ((Prop -> Prop) -> IO ()) r
            , Has (Loc -> PropId -> B (Maybe Prop)) r
+           , Has (Prop -> Time -> IO ()) r
            )
         => Loc
         -> Eff r (B [Prop])
@@ -128,7 +130,13 @@ transitionGen a b weight =
                     , (b, weight)
                     ]
 
-interiorGen :: Some r => Double -> Double -> Prop -> Eff r [Prop]
+interiorGen :: ( Some r
+               , Has (Prop -> Time -> IO ()) r
+               )
+            => Double
+            -> Double
+            -> Prop
+            -> Eff r [Prop]
 interiorGen width height portal = do
     let depth = 40
         floor = rect origin (width + depth) (height + depth)
@@ -157,6 +165,7 @@ houseGen :: ( Some r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
             , Has (Loc -> PropId -> B (Maybe Prop)) r
+            , Has (Prop -> Time -> IO ()) r
             )
          => Loc
          -> Eff r [Prop]

@@ -44,15 +44,14 @@ initialize engine = do
                       . with menu
                       $ newPlayer
 
+    let loc = Loc 0
     city <- sync . pick . with addScene
                         . with setScene
                         . with findProp
                         . with addr
                         . with addTmpObj
-                        $ cityGen (Loc 0)
-
-    sync $ let loc = Loc 0
-            in addScene loc city >> setScene' loc
+                        $ cityGen loc
+    sync $ addScene loc city >> setScene' loc
 
     sync $ do
         addMenu (MenuId 0)
@@ -66,7 +65,7 @@ initialize engine = do
         scene <- curScene
         tmp   <- tmpScene
         items <- join . maybeToList <$> menu
-        let screen = focusing p $ scene ++ [p] ++ tmp
+        let screen = focusing p $ scene ++ p:tmp
         return $ screen ++ items
 
 main = play
