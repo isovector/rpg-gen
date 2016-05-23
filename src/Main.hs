@@ -23,12 +23,13 @@ with = flip runReader
 
 initialize :: Engine -> N (B [Prop])
 initialize engine = do
-    clock    <- getElapsedClock
-    keyboard <- getKeyboard
-    (  findProp
-     , registerProp :: Int -> Prop -> IO ()) <- newCollection M.empty
+    clock                    <- getElapsedClock
+    keyboard                 <- getKeyboard
     (menu, addMenu, setMenu) <- newMenuSet keyboard
-    (curScene, addScene, setScene) <- newSceneGraph
+    (  curScene
+     , findProp
+     , addScene
+     , setScene) <- newSceneGraph
 
     (sq, addr) <- run . with clock
                       . with keyboard
@@ -39,7 +40,6 @@ initialize engine = do
     city <- sync . pick . with addScene
                         . with setScene
                         . with findProp
-                        . with registerProp
                         . with addr
                         $ cityGen (Loc 0)
 

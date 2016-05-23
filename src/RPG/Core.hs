@@ -21,6 +21,7 @@ module RPG.Core
     , module Data.Some
     , module Game.Sequoia
     , Key (..)
+    , PropId (..)
     ) where
 
 import Control.Eff
@@ -37,11 +38,12 @@ import Game.Sequoia.Keyboard
 
 type Prop = Prop' Tag
 type Has t r = Member (Reader t) r
+newtype PropId = PropId Int deriving (Eq, Show, Ord)
 
 data Tag = Tag
     { _hasCollision :: Bool
     , _isFloor      :: Bool
-    , _propKey      :: Maybe Int
+    , _propKey      :: Maybe PropId
     , _box          :: Maybe ((Prop -> Prop) -> IO ())
     , _interaction  :: Maybe (Now ())
     }

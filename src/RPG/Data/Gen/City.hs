@@ -10,6 +10,7 @@ module RPG.Data.Gen.City
     , locGen
     ) where
 
+import Control.Eff (run)
 import Data.IORef
 import RPG.Core
 import RPG.Scene
@@ -33,7 +34,7 @@ data City = City
 
 locGen :: Some r
        => Eff r Loc
-locGen = Loc <$> uniformIn maxBound
+locGen = Loc <$> uniform minBound maxBound
 
 whGen :: (Some r, Num a, MWC.Variate a) => Size -> Eff r (a, a)
 whGen s = do
@@ -51,9 +52,8 @@ whGen s = do
 cityGen2 :: ( Some r
             , Has (Loc -> B [Prop] -> IO ()) r
             , Has (Loc -> IO ()) r
-            , Has (Int -> Prop -> IO ()) r
-            , Has (Int -> B (Maybe Prop)) r
             , Has ((Prop -> Prop) -> IO ()) r
+            , Has (Loc -> PropId -> B (Maybe Prop)) r
             )
          => City
          -> Loc
@@ -74,9 +74,8 @@ cityGen2 c loc = do
 cityGen :: ( Some r
            , Has (Loc -> B [Prop] -> IO ()) r
            , Has (Loc -> IO ()) r
-           , Has (Int -> Prop -> IO ()) r
-           , Has (Int -> B (Maybe Prop)) r
            , Has ((Prop -> Prop) -> IO ()) r
+           , Has (Loc -> PropId -> B (Maybe Prop)) r
            )
         => Loc
         -> Eff r (B [Prop])
@@ -154,9 +153,8 @@ interiorGen width height portal = do
 houseGen :: ( Some r
             , Has (Loc -> B [Prop] -> IO ()) r
             , Has (Loc -> IO ()) r
-            , Has (Int -> Prop -> IO ()) r
-            , Has (Int -> B (Maybe Prop)) r
             , Has ((Prop -> Prop) -> IO ()) r
+            , Has (Loc -> PropId -> B (Maybe Prop)) r
             )
          => Loc
          -> Eff r [Prop]
