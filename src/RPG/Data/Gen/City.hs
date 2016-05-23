@@ -138,17 +138,19 @@ interiorGen width height portal = do
         yshift = (height + depth) / 2
         xshift = (width + depth) / 2
         tag = tags $ hasCollision .~ True
-    who <- personDraw <$> personGen
+    who <- personGen >>= personBuild
 
-    return [ tags (isFloor .~ True) $ filled red floor
+    return $
+           [ tags (isFloor .~ True) $ filled red floor
            , tag . move (mkRel 0 (-yshift)) $ filled grey topWall
            , tag . move (mkRel (-xshift) 0) $ filled grey sideWall
            , tag . move (mkRel xshift 0) $ filled grey sideWall
            , tag . move (mkRel (xshift / 2) yshift) $ filled grey botWall
            , tag . move (mkRel ((-xshift) / 2) yshift) $ filled grey botWall
-           , who
            , move (mkRel 0 yshift) portal
            ]
+           ++
+           who
 
 houseGen :: ( Some r
             , Has (Loc -> B [Prop] -> IO ()) r

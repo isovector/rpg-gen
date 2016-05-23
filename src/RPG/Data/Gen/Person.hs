@@ -5,9 +5,10 @@
 module RPG.Data.Gen.Person
     ( module RPG.Data.Person
     , personGen
-    , personDraw
+    , personBuild
     ) where
 
+import Game.Sequoia.Color
 import RPG.Core
 import RPG.Data.Gen.Utils
 import RPG.Data.Person
@@ -28,7 +29,24 @@ shapeDraw Triangle size = polygon origin [ mkRel 0 $ -size
                                          , mkRel (-size) size
                                          ]
 
+discussionGen :: Some r => Temperament -> Eff r (Now ())
+discussionGen t = fmap (sync . putStrLn) . uniformly
+                $ case t of
+                    Happy -> ["hello!", "i love life!"]
+                    Sad   -> ["bah humbug"]
+
+discussionProp :: Some r => Temperament -> Eff r Prop
+discussionProp t = do
+    discussion <- discussionGen t
+    return . tags (interaction .~ Just discussion)
+           . traced yellow
+           $ rect origin 40 40
+
+personBuild :: Some r => Person -> Eff r [Prop]
+personBuild p@Person{..} = (: [personDraw p]) <$> discussionProp temperament
+
 personDraw :: Person -> Prop
-personDraw Person{..} = styled skinColor (defaultLine {lineColor = hairColor})
+personDraw Person{..} = tags (hasCollision .~ True)
+                      . styled skinColor (defaultLine {lineColor = hairColor})
                       $ shapeDraw perShape perSize
 
