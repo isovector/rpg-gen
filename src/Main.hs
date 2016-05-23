@@ -62,11 +62,11 @@ initialize engine = do
         -- setMenu . Just $ MenuId 0
 
     return $ do
-        p <- sq
+        p     <- sq
         scene <- curScene
-        tmp <- tmpScene
-        let screen = focusing p $ scene ++ [p] ++ tmp
+        tmp   <- tmpScene
         items <- join . maybeToList <$> menu
+        let screen = focusing p $ scene ++ [p] ++ tmp
         return $ screen ++ items
 
 main = play
