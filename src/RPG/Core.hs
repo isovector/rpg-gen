@@ -10,7 +10,6 @@ module RPG.Core
     , box
     , interaction
     , Has
-    , HasIO
     , Eff
     , Prop
     , ask
@@ -19,7 +18,6 @@ module RPG.Core
     , liftIO
     , module Control.Lens
     , module Control.Monad
-    , module Data.IORef
     , module Data.Some
     , module Game.Sequoia
     , Key (..)
@@ -39,7 +37,6 @@ import Game.Sequoia.Keyboard
 
 type Prop = Prop' Tag
 type Has t r = Member (Reader t) r
-type HasIO t r = Has (IORef t) r
 
 data Tag = Tag
     { _hasCollision :: Bool

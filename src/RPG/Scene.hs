@@ -16,15 +16,13 @@ type SceneGraph = Map Loc (B [Prop])
 newtype Loc = Loc Int
     deriving (Eq, Show, Ord)
 
-newSceneGraph :: Loc
-              -> B [Prop]
-              -> Now ( B [Prop]
+newSceneGraph :: Now ( B [Prop]
                      , Loc -> B [Prop] -> IO ()
                      , Loc -> IO ()
                      )
-newSceneGraph startloc start = do
-    (graph, addScene) <- newCollection $ M.singleton startloc start
-    (loc, setLoc)     <- scanle const startloc
+newSceneGraph = do
+    (graph, addScene) <- newCollection . M.singleton (Loc $ -1) $ pure []
+    (loc, setLoc)     <- scanle const (Loc $ -1)
     return ( join . fmap fromJust $ loc >>= graph
            , addScene
            , setLoc

@@ -1,4 +1,3 @@
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -6,7 +5,6 @@ module Main where
 
 import Control.Eff
 import Control.Eff.Reader.Lazy
-import Data.IORef
 import Data.List (sortBy)
 import Data.Maybe (maybeToList)
 import Data.Ord (comparing)
@@ -24,29 +22,29 @@ with :: Typeable e => e -> Eff (Reader e :> r) w -> Eff r w
 with = flip runReader
 
 initialize :: Engine -> N (B [Prop])
-initialize engine = mdo
+initialize engine = do
     clock    <- getElapsedClock
     keyboard <- getKeyboard
     (  findProp
      , registerProp :: Int -> Prop -> IO ()) <- newCollection M.empty
     (menu, addMenu, setMenu) <- newMenuSet keyboard
-    (curScene, addScene, setScene) <- newSceneGraph (Loc 0) city
-
-    (ioRef :: IORef ((Prop -> Prop) -> IO ())) <- sync $ newIORef undefined
-
-    city <- sync . pick . with addScene
-                        . with setScene
-                        . with findProp
-                        . with registerProp
-                        . with ioRef
-                        $ cityGen (Loc 0)
+    (curScene, addScene, setScene) <- newSceneGraph
 
     (sq, addr) <- run . with clock
                       . with keyboard
                       . with curScene
                       . with menu
                       $ newPlayer
-    sync $ writeIORef ioRef addr
+
+    city <- sync . pick . with addScene
+                        . with setScene
+                        . with findProp
+                        . with registerProp
+                        . with addr
+                        $ cityGen (Loc 0)
+
+    sync $ let loc = Loc 0
+            in addScene loc city >> setScene loc
 
     sync $ do
         addMenu (MenuId 0)
