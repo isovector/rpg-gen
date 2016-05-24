@@ -52,7 +52,7 @@ cityGen2 :: ( Some r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
             , Has (Loc -> PropId -> B (Maybe Prop)) r
-            , Has (Prop -> Time -> IO ()) r
+            , Has (B Prop -> Time -> IO ()) r
             )
          => City
          -> Loc
@@ -75,7 +75,7 @@ cityGen :: ( Some r
            , Has (Loc -> IO ()) r
            , Has ((Prop -> Prop) -> IO ()) r
            , Has (Loc -> PropId -> B (Maybe Prop)) r
-           , Has (Prop -> Time -> IO ()) r
+           , Has (B Prop -> Time -> IO ()) r
            )
         => Loc
         -> Eff r (B [Prop])
@@ -131,13 +131,15 @@ transitionGen a b weight =
                     ]
 
 interiorGen :: ( Some r
-               , Has (Prop -> Time -> IO ()) r
+               , Has (B Prop -> Time -> IO ()) r
+               , Has (Loc -> PropId -> B (Maybe Prop)) r
                )
             => Double
             -> Double
+            -> Loc
             -> Prop
             -> Eff r [Prop]
-interiorGen width height portal = do
+interiorGen width height loc portal = do
     let depth = 40
         floor = rect origin (width + depth) (height + depth)
         sideWall = rect origin depth $ height + 2 * depth
@@ -146,7 +148,7 @@ interiorGen width height portal = do
         yshift = (height + depth) / 2
         xshift = (width + depth) / 2
         tag = tags $ hasCollision .~ True
-    who <- personGen >>= personBuild
+    who <- personGen >>= personBuild loc
 
     return $
            [ tags (isFloor .~ True) $ filled red floor
@@ -165,7 +167,7 @@ houseGen :: ( Some r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
             , Has (Loc -> PropId -> B (Maybe Prop)) r
-            , Has (Prop -> Time -> IO ()) r
+            , Has (B Prop -> Time -> IO ()) r
             )
          => Loc
          -> Eff r [Prop]
@@ -173,7 +175,7 @@ houseGen loc = do
     (addScene :: Loc -> B [Prop] -> IO ()) <- ask
     intLoc <- locGen
     (p1, p2) <- portal loc intLoc
-    interior <- interiorGen 200 200 p2
+    interior <- interiorGen 200 200 intLoc p2
 
     liftIO . addScene intLoc $ pure interior
 

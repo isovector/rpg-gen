@@ -33,7 +33,7 @@ initialize engine = do
      , setScene'
      , findProp) <- newSceneGraph
 
-    (  tmpScene :: B [Prop]
+    (  tmpScene :: B [B Prop]
      , addTmpObj
      , clearTmp) <- newTimedCollection clock
     let setScene = (clearTmp >>) . setScene'
@@ -63,7 +63,7 @@ initialize engine = do
     return $ do
         p     <- sq
         scene <- curScene
-        tmp   <- tmpScene
+        tmp   <- join $ fmap sequence tmpScene
         items <- join . maybeToList <$> menu
         let screen = focusing p $ scene ++ p:tmp
         return $ screen ++ items

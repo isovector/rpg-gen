@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -15,6 +16,7 @@ import Game.Sequoia.Stanza
 import RPG.Core
 import RPG.Data.Gen.Utils
 import RPG.Data.Person
+import RPG.Scene
 
 personGen :: Some r => Eff r Person
 personGen = Person
@@ -24,6 +26,7 @@ personGen = Person
         <*> enumGen
         <*> uniform 5 15
 
+
 shapeDraw :: NpcShape -> Double -> Shape
 shapeDraw Square   size = rect origin (size * 2) (size * 2)
 shapeDraw Circle   size = circle origin size
@@ -32,13 +35,18 @@ shapeDraw Triangle size = polygon origin [ mkRel 0 $ -size
                                          , mkRel (-size) size
                                          ]
 
+
 discussionGen :: ( Some r
-                 , Has (Prop -> Time -> IO ()) r
+                 , Has (B Prop -> Time -> IO ()) r
+                 , Has (Loc -> PropId -> B (Maybe Prop)) r
                  )
               => Temperament
+              -> Loc
+              -> PropId
               -> Eff r (Now ())
-discussionGen t = do
-    (addTmpObj :: Prop -> Time -> IO ()) <- ask
+discussionGen t loc key = do
+    (addTmpObj :: B Prop -> Time -> IO ())         <- ask
+    (findProp  :: Loc -> PropId -> B (Maybe Prop)) <- ask
     msg <- uniformly $ case t of
                 Happy -> [ "hello!"
                          , "i love life!"
@@ -50,31 +58,51 @@ discussionGen t = do
                          , "everything is terrible"
                          , ":("
                          ]
-    return . sync $ do
-        addTmpObj ( StanzaProp
-                  . monospace
-                  . aligned Centered
-                  . color black
-                  . height 12
-                  $ toStanza msg) 2
+    let prop = StanzaProp
+             . monospace
+             . aligned Centered
+             . color black
+             . height 12
+             $ toStanza msg
+        tracer = findProp loc key
+
+    return . sync . flip addTmpObj 2 $ do
+        tracer >>= pure . \case
+            Just traced -> teleport ( plusDir (center traced)
+                                    . mkRel 0 $ -30
+                                    ) prop
+            Nothing     -> prop
+
 
 discussionProp :: ( Some r
-                  , Has (Prop -> Time -> IO ()) r
+                  , Has (B Prop -> Time -> IO ()) r
+                  , Has (Loc -> PropId -> B (Maybe Prop)) r
                   )
                => Temperament
+               -> Loc
+               -> PropId
                -> Eff r Prop
-discussionProp t = do
-    discussion <- discussionGen t
+discussionProp t loc key = do
+    idkey <- PropId <$> int
+    discussion <- discussionGen t loc key
     return . tags (interaction .~ Just discussion)
+           . tags (propKey     .~ Just idkey)
            . traced yellow
            $ rect origin 40 40
 
+
 personBuild :: ( Some r
-               , Has (Prop -> Time -> IO ()) r
+               , Has (B Prop -> Time -> IO ()) r
+               , Has (Loc -> PropId -> B (Maybe Prop)) r
                )
-            => Person
+            => Loc
+            -> Person
             -> Eff r [Prop]
-personBuild p@Person{..} = (: [personDraw p]) <$> discussionProp temperament
+personBuild loc p@Person{..} = do
+    idkey <- PropId <$> int
+    let prop = tags (propKey .~ Just idkey) $ personDraw p
+    (: [prop]) <$> discussionProp temperament loc idkey
+
 
 personDraw :: Person -> Prop
 personDraw Person{..} = tags (hasCollision .~ True)
