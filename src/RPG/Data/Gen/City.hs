@@ -48,6 +48,7 @@ whGen s = do
     go Huge   = (900, 1200)
 
 cityGen2 :: ( Some r
+            , Has Clock r
             , Has (Loc -> B Prop -> IO ()) r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
@@ -71,6 +72,7 @@ cityGen2 c loc = do
         return $ move (rel xspread $ fromIntegral row) house
 
 cityGen :: ( Some r
+           , Has Clock r
            , Has (Loc -> B Prop -> IO ()) r
            , Has (Loc -> IO ()) r
            , Has ((Prop -> Prop) -> IO ()) r
@@ -131,6 +133,7 @@ transitionGen a b weight =
                     ]
 
 interiorGen :: ( Some r
+               , Has Clock r
                , Has (B Prop -> Time -> IO ()) r
                , Has (Loc -> PropId -> B (Maybe Prop)) r
                )
@@ -138,8 +141,10 @@ interiorGen :: ( Some r
             -> Double
             -> Loc
             -> Prop
-            -> Eff r Prop
+            -> Eff r (B Prop)
 interiorGen width height loc portal = do
+    (clock :: Clock) <- ask
+
     let depth = 40
         floor = rect origin (width + depth) (height + depth)
         sideWall = rect origin depth $ height + 2 * depth
@@ -150,18 +155,22 @@ interiorGen width height loc portal = do
         tagged = tagging $ hasCollision .~ True
     who <- personGen >>= personBuild loc
 
-    return . group $
-           [ tagging (isFloor .~ True) $ filled red floor
-           , tagged . move (rel 0 (-yshift)) $ filled grey topWall
-           , tagged . move (rel (-xshift) 0) $ filled grey sideWall
-           , tagged . move (rel xshift 0) $ filled grey sideWall
-           , tagged . move (rel (xshift / 2) yshift) $ filled grey botWall
-           , tagged . move (rel ((-xshift) / 2) yshift) $ filled grey botWall
-           , who
-           , move (rel 0 yshift) portal
-           ]
+    return $ do
+        now <- totalTime clock
+        let pos = mkPos (cos now * 50) (sin now * 50)
+        return $ group
+            [ tagging (isFloor .~ True) $ filled red floor
+            , tagged . move (rel 0 (-yshift)) $ filled grey topWall
+            , tagged . move (rel (-xshift) 0) $ filled grey sideWall
+            , tagged . move (rel xshift 0) $ filled grey sideWall
+            , tagged . move (rel (xshift / 2) yshift) $ filled grey botWall
+            , tagged . move (rel ((-xshift) / 2) yshift) $ filled grey botWall
+            , teleport pos who
+            , move (rel 0 yshift) portal
+            ]
 
 houseGen :: ( Some r
+            , Has Clock r
             , Has (Loc -> B Prop -> IO ()) r
             , Has (Loc -> IO ()) r
             , Has ((Prop -> Prop) -> IO ()) r
@@ -176,7 +185,7 @@ houseGen loc = do
     (p1, p2) <- portal loc intLoc
     interior <- interiorGen 200 200 intLoc p2
 
-    liftIO . addScene intLoc $ pure interior
+    liftIO $ addScene intLoc interior
 
     slatColor <- colorFuzz 0.2 grey
     roofColor <- colorFuzz 0.3 yellow

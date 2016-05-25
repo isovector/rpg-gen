@@ -49,14 +49,14 @@ newSceneGraph = do
             Nothing -> return Nothing
 
 -- TODO(sandy): move to sequoia
-newTimedCollection :: B Time
+newTimedCollection :: Clock
                    -> Now ( B [a]
                           , a -> Time -> IO ()
                           , IO ()
                           )
 newTimedCollection clock = do
     (col, add) <- foldmp [] $ \col -> do
-        dt <- sample clock
+        dt <- sample $ deltaTime clock
         return . filter ((> 0) . snd)
                $ map (second $ subtract dt) col
     return ( fmap fst <$> col

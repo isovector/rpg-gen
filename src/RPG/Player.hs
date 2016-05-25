@@ -26,7 +26,7 @@ withMailbox p f = do
     return r
 
 
-newPlayer :: ( Has (B Time) r
+newPlayer :: ( Has Clock r
              , Has (B [Key]) r
              , Has (B Prop) r
              , Has (B (Maybe Prop)) r
@@ -35,7 +35,7 @@ newPlayer :: ( Has (B Time) r
                       , (Prop -> Prop) -> IO ()
                       ))
 newPlayer = do
-    (clock  :: B Time)   <- ask
+    (clock  :: Clock)  <- ask
     (scene  :: B Prop) <- ask
     keys <- do
         (keyboard :: B [Key])        <- ask
@@ -48,7 +48,7 @@ newPlayer = do
     return $ do
         player <- sync $ pick playerGen
         r@(sig, addr) <- withMailbox player $ \p -> do
-            dt   <- sample clock
+            dt   <- sample $ deltaTime clock
             dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             ps   <- sample scene
             let walls  = map fst $ findTag _hasCollision id ps

@@ -25,7 +25,7 @@ with = flip runReader
 
 initialize :: Engine -> N (B Prop)
 initialize engine = do
-    clock                    <- getElapsedClock
+    clock                    <- getClock
     keyboard                 <- getKeyboard
     (menu, addMenu, setMenu) <- newMenuSet keyboard
     (  curScene
@@ -46,6 +46,7 @@ initialize engine = do
 
     let loc = Loc 0
     city <- sync . pick . with addScene
+                        . with clock
                         . with setScene
                         . with findProp
                         . with addr
