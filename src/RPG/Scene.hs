@@ -36,15 +36,14 @@ newSceneGraph = do
            , getScene graph
            )
   where
-    findTag' p t prop = findTag prop p t
     getScene graph loc prop = do
         sceneMay <- graph loc
         case ( sceneMay >>= \scene ->
             return $
                 scene >>= return . map fst
-                                 . findTag' ( maybe False (== prop)
-                                            . view propKey
-                                            ) id
+                                 . findTag ( maybe False (== prop)
+                                           . view propKey
+                                           ) id
          ) of
             Just y  -> fmap (fst <$>) (uncons <$> y)
             Nothing -> return Nothing
