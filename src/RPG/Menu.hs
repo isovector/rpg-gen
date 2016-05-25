@@ -31,7 +31,7 @@ $(makeLenses ''MenuState)
 data MenuId = MenuId Int deriving (Eq, Ord)
 
 newMenuSet :: B [Key]
-           -> Now ( B (Maybe [Prop])
+           -> Now ( B (Maybe Prop)
                   , MenuId -> [MenuItem] -> IO ()
                   , Maybe MenuId -> IO ()
                   )
@@ -60,8 +60,9 @@ newMenuSet keys = do
         , setMenu
         )
 
-drawMenu :: MenuState -> [Prop]
-drawMenu m = map (\(i, p) -> move (scaleRel i (mkRel 0 16)) p)
+drawMenu :: MenuState -> Prop
+drawMenu m = group
+           . map (\(i, p) -> move (scaleRel i (rel 0 16)) p)
            . zip [0..]
            . map (uncurry drawMenuItem)
            . map (first (_menuSelected m ==))
@@ -69,7 +70,8 @@ drawMenu m = map (\(i, p) -> move (scaleRel i (mkRel 0 16)) p)
            $ _menuItems m
 
 drawMenuItem :: Bool -> MenuItem -> Prop
-drawMenuItem selected = StanzaProp
+drawMenuItem selected = Leaf
+                      . StanzaPiece def
                       . monospace
                       . color (if selected then red else blue)
                       . height 12

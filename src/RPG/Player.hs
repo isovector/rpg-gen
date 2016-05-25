@@ -7,6 +7,7 @@ module RPG.Player
 
 import Control.FRPNow.EvStream
 import Control.Monad (forM_)
+import Data.Foldable (toList)
 import Data.Maybe (isJust, mapMaybe)
 import Game.Sequoia.Color
 import Game.Sequoia.Keyboard (arrows, keyPress)
@@ -21,24 +22,24 @@ withMailbox :: Prop
                  )
 withMailbox p f = do
     r@(_, b) <- foldmp p f
-    sync . b $ tags (box .~ Just b)
+    sync . b $ tagging (box .~ Just b)
     return r
 
 
-newPlayer :: ( Has (B Time)           r
-             , Has (B [Key])          r
-             , Has (B [Prop])         r
-             , Has (B (Maybe [Prop])) r
+newPlayer :: ( Has (B Time) r
+             , Has (B [Key]) r
+             , Has (B Prop) r
+             , Has (B (Maybe Prop)) r
              )
           => Eff r (N ( B Prop
                       , (Prop -> Prop) -> IO ()
                       ))
 newPlayer = do
     (clock  :: B Time)   <- ask
-    (scene  :: B [Prop]) <- ask
+    (scene  :: B Prop) <- ask
     keys <- do
-        (keyboard :: B [Key])          <- ask
-        (menu     :: B (Maybe [Prop])) <- ask
+        (keyboard :: B [Key])        <- ask
+        (menu     :: B (Maybe Prop)) <- ask
         return $ ifThenElse
               <$> fmap isJust menu
               <*> return []
@@ -50,8 +51,8 @@ newPlayer = do
             dt   <- sample clock
             dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             ps   <- sample scene
-            let walls  = filter (_hasCollision . getTag) ps
-                floors = filter (_isFloor      . getTag) ps
+            let walls  = map fst $ findTag ps _hasCollision id
+                floors = map fst $ findTag ps _isFloor id
             return $ tryMove walls floors p dpos
 
         onEvent (keyPress keys SpaceKey) . const $ do
@@ -62,13 +63,13 @@ newPlayer = do
         return r
 
 
-interactions :: [Prop]
+interactions :: Prop
              -> Prop
              -> [Now ()]
 interactions ps p =
     mapMaybe (view interaction)
-        . map getTag
-        $ overlapping ps p
+        . map tag
+        $ overlapping (toList ps) p
 
 
 ifThenElse :: Bool -> a -> a -> a

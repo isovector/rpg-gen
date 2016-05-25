@@ -30,9 +30,9 @@ personGen = Person
 shapeDraw :: NpcShape -> Double -> Shape
 shapeDraw Square   size = rect origin (size * 2) (size * 2)
 shapeDraw Circle   size = circle origin size
-shapeDraw Triangle size = polygon origin [ mkRel 0 $ -size
-                                         , mkRel size $ size
-                                         , mkRel (-size) size
+shapeDraw Triangle size = polygon origin [ rel 0 $ -size
+                                         , rel size $ size
+                                         , rel (-size) size
                                          ]
 
 
@@ -58,7 +58,8 @@ discussionGen t loc key = do
                          , "everything is terrible"
                          , ":("
                          ]
-    let prop = StanzaProp
+    let prop = Leaf
+             . StanzaPiece def
              . monospace
              . aligned Centered
              . color black
@@ -69,7 +70,7 @@ discussionGen t loc key = do
     return . sync . flip addTmpObj 2 $ do
         tracer >>= pure . \case
             Just traced -> teleport ( plusDir (center traced)
-                                    . mkRel 0 $ -30
+                                    . rel 0 $ -30
                                     ) prop
             Nothing     -> prop
 
@@ -83,10 +84,8 @@ discussionProp :: ( Some r
                -> PropId
                -> Eff r Prop
 discussionProp t loc key = do
-    idkey <- PropId <$> int
     discussion <- discussionGen t loc key
-    return . tags (interaction .~ Just discussion)
-           . tags (propKey     .~ Just idkey)
+    return . tagging (interaction .~ Just discussion)
            . traced yellow
            $ rect origin 40 40
 
@@ -97,15 +96,16 @@ personBuild :: ( Some r
                )
             => Loc
             -> Person
-            -> Eff r [Prop]
+            -> Eff r Prop
 personBuild loc p@Person{..} = do
     idkey <- PropId <$> int
-    let prop = tags (propKey .~ Just idkey) $ personDraw p
-    (: [prop]) <$> discussionProp temperament loc idkey
+    let prop = tagging (propKey .~ Just idkey) $ personDraw p
+    discussion <- discussionProp temperament loc idkey
+    return $ group [discussion, prop]
 
 
 personDraw :: Person -> Prop
-personDraw Person{..} = tags (hasCollision .~ True)
+personDraw Person{..} = tagging (hasCollision .~ True)
                       . styled skinColor (defaultLine {lineColor = hairColor})
                       $ shapeDraw perShape perSize
 

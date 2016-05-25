@@ -25,9 +25,9 @@ portal dst1 dst2 = do
     (findProp   :: Loc -> PropId -> B (Maybe Prop)) <- ask
     p1 <- portalGen
     p2 <- portalGen
-    let id1 = maybe undefined id . view propKey $ getTag p1
-        id2 = maybe undefined id . view propKey $ getTag p2
-        f d i = tags . set interaction . Just $ do
+    let id1 = maybe undefined id . view propKey $ tag $ (\(Leaf a) -> a) p1
+        id2 = maybe undefined id . view propKey $ tag $ (\(Leaf a) -> a) p2
+        f d i = tagging . set interaction . Just $ do
             pos <- fmap (maybe origin center) . sample $ findProp d i
             liftIO $ do
                 setLoc d
@@ -40,7 +40,7 @@ portal dst1 dst2 = do
 portalGen :: Some r => Eff r Prop
 portalGen = do
     idkey <- Just . PropId <$> int
-    return . tags (propKey .~ idkey)
+    return . tagging (propKey .~ idkey)
            . traced yellow
            $ rect origin 40 40
 

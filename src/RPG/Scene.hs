@@ -19,14 +19,16 @@ type SceneGraph = Map Loc (B [Prop])
 newtype Loc = Loc Int
     deriving (Eq, Show, Ord)
 
-newSceneGraph :: Now ( B [Prop]
-                     , Loc -> B [Prop] -> IO ()
+newSceneGraph :: Now ( B Prop
+                     , Loc -> B Prop -> IO ()
                      , Loc -> IO ()
                      , Loc -> PropId -> B (Maybe Prop)
                      )
 newSceneGraph = do
     let startloc = Loc $ -1
-    (graph, addScene) <- newCollection . M.singleton startloc $ pure []
+    (graph, addScene) <- newCollection . M.singleton startloc
+                                       . return
+                                       $ group []
     (loc, setLoc)     <- scanle const startloc
     return ( join . fmap fromJust $ loc >>= graph
            , addScene
@@ -34,14 +36,15 @@ newSceneGraph = do
            , getScene graph
            )
   where
+    findTag' p t prop = findTag prop p t
     getScene graph loc prop = do
         sceneMay <- graph loc
         case ( sceneMay >>= \scene ->
             return $
-                scene >>= return . filter ( maybe False (== prop)
-                                          . view propKey
-                                          . getTag
-                                          )
+                scene >>= return . map fst
+                                 . findTag' ( maybe False (== prop)
+                                            . view propKey
+                                            ) id
          ) of
             Just y  -> fmap (fst <$>) (uncons <$> y)
             Nothing -> return Nothing

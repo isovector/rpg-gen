@@ -23,7 +23,7 @@ import Game.Sequoia.Color
 with :: Typeable e => e -> Eff (Reader e :> r) w -> Eff r w
 with = flip runReader
 
-initialize :: Engine -> N (B [Prop])
+initialize :: Engine -> N (B Prop)
 initialize engine = do
     clock                    <- getElapsedClock
     keyboard                 <- getKeyboard
@@ -64,9 +64,9 @@ initialize engine = do
         p     <- sq
         scene <- curScene
         tmp   <- join $ fmap sequence tmpScene
-        items <- join . maybeToList <$> menu
-        let screen = focusing p $ scene ++ p:tmp
-        return $ screen ++ items
+        items <- maybeToList <$> menu
+        let screen = focusing p $ group [scene, p, group tmp]
+        return $ group [screen, Branch items]
 
 main = play
     (EngineConfig (640, 480) "rpg-gen")
