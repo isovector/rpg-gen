@@ -18,7 +18,7 @@ import RPG.Player
 import RPG.Scene
 import qualified Data.Map as M
 
-import RPG.Data.Story
+import RPG.Data.StoryImpl
 
 import Game.Sequoia.Color
 
@@ -71,7 +71,9 @@ initialize engine = do
         let screen = focusing p $ group [scene, p, group tmp]
         return $ group [screen, Branch items]
 
-main = play
-    (EngineConfig (640, 480) "rpg-gen")
-    initialize return
+-- main = play
+--     (EngineConfig (640, 480) "rpg-gen")
+--     initialize return
+main = runStory dopestory
+
 

@@ -1,22 +1,45 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module RPG.Data.Story
-    ( change
+    ( Story
+    , StoryF (..)
+    , ChangeType (..)
+    , ChangeResult (..)
+    , Knowledge (..)
+    , Opinion (..)
+    , Character (..)
+    , Desirable (..)
+    , change
+    , interrupt
+    , macguffin
+    , kill
+    , die
+    , want
+    , learnOf
     ) where
 
 import Control.Monad.Free
 import Control.Monad.Free.TH
 
-data Desirable = Desirable Int
-data Character = Character
+data Desirable = Desirable String deriving (Eq)
+instance Show Desirable where
+    show (Desirable name) = name
+
+data Character = Character String deriving (Eq)
+instance Show Character where
+    show (Character name) = name
+
 data Opinion = Friend
              | Neutral
              | Enemy
+             deriving (Eq, Show)
 
-data Knowledge = ChangeOf ChangeResult
+data Knowledge = ChangeOf ChangeResult deriving (Eq, Show)
 
-data ChangeResult = ChangeResult
+data ChangeResult = ChangeResult Character ChangeType
+    deriving (Eq, Show)
 data ChangeType = Introduce
                 | Die
                 | Kill Character
@@ -27,6 +50,7 @@ data ChangeType = Introduce
                 | Want Desirable
                 | Achieve Desirable
                 | Feel Character Opinion
+                deriving (Eq, Show)
 
 data StoryF a = Change Character ChangeType (ChangeResult -> a)
               | Interrupt (Free StoryF ()) (Free StoryF ()) a
@@ -38,9 +62,7 @@ $(makeFree ''StoryF)
 type Story = Free StoryF
 
 kill :: Character -> Character -> Story ChangeResult
-kill who whom = do
-    die whom
-    change who $ Kill whom
+kill who whom = change who (Kill whom) <* die whom
 
 die :: Character -> Story ChangeResult
 die = flip change Die
