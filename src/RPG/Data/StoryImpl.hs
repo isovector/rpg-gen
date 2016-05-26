@@ -22,7 +22,7 @@ runStoryF (Change c ct next) = do
       Learn (ChangeOf (ChangeResult c' _)) ->
           [ show c, " learns about ", show c', "'s actions"]
       Feel c' how ->
-          [ show c, " now considers ", show c', " an ", show how ]
+          [ show c, " now considers ", show c', " a(n) ", show how ]
       Die ->
           [ show c, " dies" ]
       Leave ->
@@ -47,10 +47,11 @@ runStoryF (Interrupt interrupted by next) = do
 
 dopestory :: Story ()
 dopestory = do
-    let johnny = Character "Johnny"
+    let johnny = Character "Mr. Monkey"
     let crab = Character "The Lord of Crabs"
-    let scrub = Character "a huge noob"
+    let scrub = Character "Jared"
 
+    void . change johnny $ Feel scrub Friend
     thing <- macguffin
     want crab thing
     want scrub thing
@@ -60,8 +61,8 @@ dopestory = do
         change johnny . Learn $ ChangeOf uh_oh
         void . change johnny $ Feel crab Enemy
 
-
-
-
+    change crab Leave
+    change johnny Leave
+    kill johnny crab
     return ()
 
