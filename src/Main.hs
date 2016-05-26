@@ -18,6 +18,8 @@ import RPG.Player
 import RPG.Scene
 import qualified Data.Map as M
 
+import RPG.Data.Story
+
 import Game.Sequoia.Color
 
 with :: Typeable e => e -> Eff (Reader e :> r) w -> Eff r w

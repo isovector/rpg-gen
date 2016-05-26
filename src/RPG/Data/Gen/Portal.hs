@@ -23,6 +23,7 @@ portal dst1 dst2 = do
     (setLoc     :: Loc -> IO ())                    <- ask
     (movePlayer :: (Prop -> Prop) -> IO ())         <- ask
     (findProp   :: Loc -> PropId -> B (Maybe Prop)) <- ask
+
     p1 <- portalGen
     p2 <- portalGen
     let id1 = maybe undefined id . view propKey . head $ tags p1

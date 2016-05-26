@@ -9,7 +9,6 @@ module RPG.Data.Gen.City
     , locGen
     ) where
 
-import Control.Eff (run)
 import RPG.Core
 import RPG.Scene
 import Control.Monad (forM, join)

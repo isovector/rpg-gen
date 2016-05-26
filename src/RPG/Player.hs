@@ -52,6 +52,7 @@ newPlayer = do
             dpos <- fmap (scaleRel $ dt * 300) . sample $ arrows keys
             ps   <- sample scene
             let walls  = map fst $ findTag _hasCollision id ps
+
                 floors = map fst $ findTag _isFloor id ps
             return $ tryMove walls floors p dpos
 
