@@ -54,11 +54,12 @@ mkCoStory = coiter next start
     next w = CoStoryF (coChange w) (coInterrupt w) (coMacguffin w)
     start = 0 :: Int
 
-    coChange w c ct = (ChangeResult c ct, w)
+    coChange w c ct    = (ChangeResult c ct, w)
+    -- TODO(sandy): use pair to extract the state, inject it into this. winning.
     coInterrupt w a a' = (undefined, w)
-    coMacguffin w = (Desirable $ show w, w + 1)
+    coMacguffin w      = (Desirable $ show w, w + 1)
 
-runStory :: CoStory Int -> Story b -> b
+runStory :: CoStory a -> Story b -> b
 runStory w m = pair (\_ b -> b) w m
 
 
