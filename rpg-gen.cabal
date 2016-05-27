@@ -35,6 +35,7 @@ executable rpg-gen
                        frpnow,
                        extensible-effects,
                        SG,
+                       comonad,
                        free
   hs-source-dirs:      src
   default-language:    Haskell2010

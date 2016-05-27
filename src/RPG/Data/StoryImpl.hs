@@ -40,9 +40,9 @@ runStoryF (Interrupt interrupted by next) = do
     putStrLn "\nwhile..."
     runStory interrupted
     putStrLn "\nbut is interrupted by..."
-    runStory by
+    b <- runStory by
     putStrLn ""
-    runStory next
+    runStory $ next b
 
 
 dopestory :: Story ()
@@ -59,7 +59,7 @@ dopestory = do
     interrupt (void $ change crab Leave) $ do
         uh_oh <- kill crab scrub
         change johnny . Learn $ ChangeOf uh_oh
-        void . change johnny $ Feel crab Enemy
+        change johnny $ Feel crab Enemy
 
     change crab Leave
     change johnny Leave
