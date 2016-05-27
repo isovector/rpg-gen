@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveFunctor #-}
@@ -7,6 +8,8 @@
 module RPG.Data.Story
     ( Story
     , StoryF (..)
+    , CoStoryT
+    , CoStoryF (..)
     , ChangeType (..)
     , ChangeResult (..)
     , Knowledge (..)
@@ -57,8 +60,12 @@ data ChangeType = Introduce
                 deriving (Eq, Show)
 
 data StoryF a = Change Character ChangeType (ChangeResult -> a)
-              | forall b. Interrupt (Free StoryF ()) (Free StoryF b) (b -> a)
+              | forall b. Interrupt (Story ()) (Story b) (b -> a)
               | Macguffin (Desirable -> a)
+
+-- IDEA(sandy): Possible to make a StoryWInterruptF = LiftStoryF StoryF
+-- | Interrupted, and use typeclasses to define the value-level commands so
+-- that `interrupted` only becomes available inside of an `interrupt` block?
 
 instance Functor StoryF where
     fmap f (Change c ct k)   = Change c ct (f . k)
@@ -74,19 +81,25 @@ interrupt a b = liftF $ Interrupt a b id
 macguffin :: Story Desirable
 macguffin = liftF $ Macguffin id
 
--- data CoStoryF k = CoStoryF
---                 { changeH    :: Character -> ChangeType -> (ChangeResult, k)
---                 , interruptH :: Free StoryF () -> Free StoryF () -> k
---                 , macguffinH :: (Desirable, k)
---                 } deriving Functor
+data CoStoryF k = CoStoryF
+                { changeH    :: Character -> ChangeType -> (ChangeResult, k)
+                , interruptH :: forall b. Story () -> Story b -> (b, k)
+                , macguffinH :: (Desirable, k)
+                }
+
+instance Functor CoStoryF where
+    fmap f (CoStoryF c i m) = CoStoryF
+        (fmap (fmap (fmap f)) c)
+        (fmap (fmap (fmap f)) i)
+        (fmap f m)
 
 type Story = Free StoryF
--- type CoStoryT = CofreeT CoStoryF
+type CoStoryT = CofreeT CoStoryF
 
--- instance Pairing CoStoryF StoryF where
---     pair f (CoStoryF t _ _) (Change c ct k) = pair f (t c ct) k
---     pair f (CoStoryF _ t _) (Interrupt a a' k) = f (t a a') k
---     pair f (CoStoryF _ _ t) (Macguffin k) = pair f t k
+instance Pairing CoStoryF StoryF where
+    pair f (CoStoryF t _ _) (Change c ct k)    = pair f (t c ct) k
+    pair f (CoStoryF _ t _) (Interrupt a a' k) = pair f (t a a') k
+    pair f (CoStoryF _ _ t) (Macguffin k)      = pair f t k
 
 -- x :: CoStoryF ()
 -- x = CoStoryF
