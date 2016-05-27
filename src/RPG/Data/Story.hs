@@ -8,7 +8,7 @@
 module RPG.Data.Story
     ( Story
     , StoryF (..)
-    , CoStoryT
+    , CoStory
     , CoStoryF (..)
     , ChangeType (..)
     , ChangeResult (..)
@@ -26,7 +26,7 @@ module RPG.Data.Story
     ) where
 
 import Control.Monad.Free
-import Control.Comonad.Trans.Cofree
+import Control.Comonad.Cofree
 import Control.Monad.Free.TH
 import Data.Pairing
 
@@ -93,16 +93,13 @@ instance Functor CoStoryF where
         (fmap (fmap (fmap f)) i)
         (fmap f m)
 
-type Story = Free StoryF
-type CoStoryT = CofreeT CoStoryF
+type Story   = Free   StoryF
+type CoStory = Cofree CoStoryF
 
 instance Pairing CoStoryF StoryF where
     pair f (CoStoryF t _ _) (Change c ct k)    = pair f (t c ct) k
     pair f (CoStoryF _ t _) (Interrupt a a' k) = pair f (t a a') k
     pair f (CoStoryF _ _ t) (Macguffin k)      = pair f t k
-
--- x :: CoStoryF ()
--- x = CoStoryF
 
 kill :: Character -> Character -> Story ChangeResult
 kill who whom = change who (Kill whom) <* die whom
