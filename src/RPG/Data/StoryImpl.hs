@@ -4,18 +4,21 @@ module RPG.Data.StoryImpl
     , mkCoStory
     ) where
 
+import Control.Monad.IO.Class
+import Data.Functor.Identity
 import Data.Pairing
 import Control.Monad (void)
+import Control.Comonad
 import RPG.Data.Story
-import Control.Monad.Free
-import Control.Comonad.Cofree
+import Control.Monad.Trans.Free
+import Control.Comonad.Trans.Cofree
 
--- runStory :: Story a -> IO a
+-- runStory :: StoryT m a -> IO a
 -- runStory (Pure a) = return a
 -- runStory (Free a) = runStoryF a
 
 
--- runStoryF :: StoryF (Story a) -> IO a
+-- runStoryF :: StoryF (StoryT m a) -> IO a
 -- runStoryF (Change c ct next) = do
 --     putStrLn . (++ ".") . concat $ case ct of
 --       Kill who ->
@@ -48,26 +51,39 @@ import Control.Comonad.Cofree
 --     runStory $ next b
 
 
-mkCoStory :: CoStory Int
-mkCoStory = coiter next start
+mkCoStory :: CoStoryT m Identity Int
+mkCoStory = coiterT next start
   where
     next w = CoStoryF (coChange w) (coInterrupt w) (coMacguffin w)
-    start = 0 :: Int
+    start = Identity 0 :: Identity Int
 
     coChange w c ct    = (ChangeResult c ct, w)
     -- TODO(sandy): use pair to extract the state, inject it into this. winning.
     coInterrupt w a a' = (undefined, w)
-    coMacguffin w      = (Desirable $ show w, w + 1)
+    coMacguffin w      = (Desirable $ show w, Identity $ 1 + runIdentity w)
 
-runStory :: CoStory a -> Story b -> b
-runStory w m = pair (\_ b -> b) w m
+pairEffect :: (Pairing f g, Comonad w, Monad m, Functor f, Functor g)
+           => (a -> b -> r)
+           -> CofreeT f w a
+           -> FreeT g m b
+           -> m r
+pairEffect p s c = do
+  mb <- runFreeT c
+  case mb of
+    Pure x -> return $ p (extract s) x
+    Free gs -> pair (pairEffect p) (unwrap s) gs
+
+runStory :: (Monad m, Comonad w) => CoStoryT m w a -> StoryT m b -> m b
+runStory w m = pairEffect (\_ b -> b) w m
 
 
-dopestory :: Story Desirable
+dopestory :: StoryT IO Desirable
 dopestory = do
     let johnny = Character "Mr. Monkey"
     let crab = Character "The Lord of Crabs"
     let scrub = Character "Jared"
+
+    liftIO $ putStrLn "hello"
 
     void . change johnny $ Feel scrub Friend
     thing <- macguffin
