@@ -71,15 +71,6 @@ instance Functor (StoryF m) where
     fmap f (Interrupt a b k) = Interrupt a b (f . k)
     fmap f (Macguffin k)     = Macguffin (f . k)
 
-change :: Monad m => Character -> ChangeType -> StoryT m ChangeResult
-change c ct = liftF $ Change c ct id
-
-interrupt :: Monad m => StoryT m () -> StoryT m b -> StoryT m b
-interrupt a b = liftF $ Interrupt a b id
-
-macguffin :: Monad m => StoryT m Desirable
-macguffin = liftF $ Macguffin id
-
 data CoStoryF m k = CoStoryF
                   { changeH    :: Character -> ChangeType -> (ChangeResult, k)
                   , interruptH :: forall b. StoryT m () -> StoryT m b -> (b, k)
@@ -99,6 +90,15 @@ instance Pairing (CoStoryF m) (StoryF m) where
     pair f (CoStoryF t _ _) (Change c ct k)    = pair f (t c ct) k
     pair f (CoStoryF _ t _) (Interrupt a a' k) = pair f (t a a') k
     pair f (CoStoryF _ _ t) (Macguffin k)      = pair f t k
+
+change :: Monad m => Character -> ChangeType -> StoryT m ChangeResult
+change c ct = liftF $ Change c ct id
+
+interrupt :: Monad m => StoryT m () -> StoryT m b -> StoryT m b
+interrupt a b = liftF $ Interrupt a b id
+
+macguffin :: Monad m => StoryT m Desirable
+macguffin = liftF $ Macguffin id
 
 kill :: Monad m => Character -> Character -> StoryT m ChangeResult
 kill who whom = change who (Kill whom) <* die whom
