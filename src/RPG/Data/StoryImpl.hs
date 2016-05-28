@@ -4,14 +4,15 @@ module RPG.Data.StoryImpl
     , mkCoStory
     ) where
 
+import Control.Comonad
+import Control.Comonad.Trans.Cofree
+import Control.Monad (void)
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Free
+import Data.Function (fix)
 import Data.Functor.Identity
 import Data.Pairing
-import Control.Monad (void)
-import Control.Comonad
 import RPG.Data.Story
-import Control.Monad.Trans.Free
-import Control.Comonad.Trans.Cofree
 
 -- runStory :: StoryT m a -> IO a
 -- runStory (Pure a) = return a
@@ -51,16 +52,15 @@ import Control.Comonad.Trans.Cofree
 --     runStory $ next b
 
 
-mkCoStory :: CoStoryT m Identity Int
-mkCoStory = coiterT next start
+mkCoStory :: Monad m => CoStoryT Identity m Int
+mkCoStory = fix $ \me -> coiterT (next $ runStory me) start
   where
-    next w = CoStoryF (coChange w) (coInterrupt w) (coMacguffin w)
+    next eval w = CoStoryF (coChange w) (coInterrupt eval w) (coMacguffin w)
     start = Identity 0 :: Identity Int
 
-    coChange w c ct    = (ChangeResult c ct, w)
-    -- TODO(sandy): use pair to extract the state, inject it into this. winning.
-    coInterrupt w a a' = (undefined, w)
-    coMacguffin w      = (Desirable $ show w, Identity $ 1 + runIdentity w)
+    coChange w c ct         = (ChangeResult c ct, w)
+    coInterrupt eval w a a' = (undefined, w)
+    coMacguffin w           = (Desirable $ show w, Identity $ 1 + runIdentity w)
 
 pairEffect :: (Pairing f g, Comonad w, Monad m, Functor f, Functor g)
            => (a -> b -> r)
@@ -73,11 +73,11 @@ pairEffect p s c = do
     Pure x -> return $ p (extract s) x
     Free gs -> pair (pairEffect p) (unwrap s) gs
 
-runStory :: (Monad m, Comonad w) => CoStoryT m w a -> StoryT m b -> m b
+runStory :: (Monad m, Comonad w) => CoStoryT w m a -> StoryT m b -> m b
 runStory w m = pairEffect (\_ b -> b) w m
 
 
-dopestory :: StoryT IO Desirable
+dopestory :: StoryT IO Character
 dopestory = do
     let johnny = Character "Mr. Monkey"
     let crab = Character "The Lord of Crabs"
@@ -90,7 +90,7 @@ dopestory = do
     want crab thing
     want scrub thing
 
-    interrupt (void $ change crab Leave) $ do
+    ChangeResult who _ <- interrupt (void $ change crab Leave) $ do
         uh_oh <- kill crab scrub
         change johnny . Learn $ ChangeOf uh_oh
         change johnny $ Feel crab Enemy
@@ -99,5 +99,5 @@ dopestory = do
     change johnny Leave
     kill johnny crab
     thing2 <- macguffin
-    return thing2
+    return who
 

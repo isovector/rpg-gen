@@ -7,7 +7,7 @@
 
 module RPG.Data.Story
     ( StoryT
-    , StoryF (..)
+    , StoryF ()
     , CoStoryT
     , CoStoryF (..)
     , ChangeType (..)
@@ -59,7 +59,7 @@ data ChangeType = Introduce
                 deriving (Eq, Show)
 
 data StoryF m a = Change Character ChangeType (ChangeResult -> a)
-                | forall b. Interrupt (StoryT m ()) (StoryT m b) (b -> a)
+                | forall b. Interrupt (FreeT (StoryF m) m ()) (FreeT (StoryF m) m b) (b -> a)
                 | Macguffin (Desirable -> a)
 
 -- IDEA(sandy): Possible to make a StoryWInterruptF = LiftStoryF StoryF
@@ -73,7 +73,7 @@ instance Functor (StoryF m) where
 
 data CoStoryF m k = CoStoryF
                   { changeH    :: Character -> ChangeType -> (ChangeResult, k)
-                  , interruptH :: forall b. StoryT m () -> StoryT m b -> (b, k)
+                  , interruptH :: forall b. FreeT (StoryF m) m () -> FreeT (StoryF m) m b -> (b, k)
                   , macguffinH :: (Desirable, k)
                   }
 
@@ -84,7 +84,7 @@ instance Functor (CoStoryF m) where
         (fmap f m)
 
 type StoryT m = FreeT (StoryF m) m
-type CoStoryT m w = CofreeT (CoStoryF m) w
+type CoStoryT w m = CofreeT (CoStoryF m) w
 
 instance Pairing (CoStoryF m) (StoryF m) where
     pair f (CoStoryF t _ _) (Change c ct k)    = pair f (t c ct) k
