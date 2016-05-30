@@ -24,8 +24,6 @@ mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
 mkCoStory = fix $ \me -> coiterT (next $ runStory me) start
   where
     next run w = CoStoryF (coChange w) (coInterrupt (unsafeCoerce run) w) (coMacguffin w)
-
-    start :: Store (Set Character) (Set Character)
     start = store id S.empty
 
     coChange w c ct = (ChangeResult c ct, seeks (S.insert c) w)
