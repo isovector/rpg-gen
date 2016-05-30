@@ -74,7 +74,5 @@ initialize engine = do
 -- main = play
 --     (EngineConfig (640, 480) "rpg-gen")
 --     initialize return
-main = do
-    result <- runStory mkCoStory dopestory
-    putStrLn . show $ result
+main = putStrLn . show . fst $ runStory mkCoStory dopestory
 

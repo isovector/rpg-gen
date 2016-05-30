@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module RPG.Data.StoryImpl
     ( runStory
     , dopestory
@@ -5,99 +7,79 @@ module RPG.Data.StoryImpl
     ) where
 
 import Control.Comonad
+import Control.Comonad.Store
 import Control.Comonad.Trans.Cofree
 import Control.Monad (void)
-import Control.Monad.IO.Class
 import Control.Monad.Trans.Free
 import Data.Function (fix)
-import Data.Functor.Identity
 import Data.Pairing
+import Data.Set (Set)
 import RPG.Data.Story
+import Unsafe.Coerce (unsafeCoerce)
+import qualified Data.Set as S
 
--- runStory :: StoryT m a -> IO a
--- runStory (Pure a) = return a
--- runStory (Free a) = runStoryF a
+infixl 1 =>>>
+(=>>>) :: Comonad w => w a -> (w a -> w b) -> w b
+a =>>> f = a =>> extract . f
 
-
--- runStoryF :: StoryF (StoryT m a) -> IO a
--- runStoryF (Change c ct next) = do
---     putStrLn . (++ ".") . concat $ case ct of
---       Kill who ->
---           [ show c, " kills ", show who ]
---       Want what ->
---           [ show c, " wants the ", show what ]
---       Learn (ChangeOf (ChangeResult c' _)) ->
---           [ show c, " learns about ", show c', "'s actions"]
---       Feel c' how ->
---           [ show c, " now considers ", show c', " a(n) ", show how ]
---       Die ->
---           [ show c, " dies" ]
---       Leave ->
---           [ show c, " leaves the scene" ]
---       _ ->
---           [ show c, " changed: ", show ct ]
---     runStory . next $ ChangeResult c ct
-
--- runStoryF (Macguffin next) = do
---     let thing = "Sandwich"
---     putStrLn $ "There is a thing everyone wants: a " ++ thing
---     runStory . next $ Desirable thing
-
--- runStoryF (Interrupt interrupted by next) = do
---     putStrLn "\nwhile..."
---     runStory interrupted
---     putStrLn "\nbut is interrupted by..."
---     b <- runStory by
---     putStrLn ""
---     runStory $ next b
-
-
-mkCoStory :: Monad m => CoStoryT Identity m Int
+mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
 mkCoStory = fix $ \me -> coiterT (next $ runStory me) start
   where
-    next eval w = CoStoryF (coChange w) (coInterrupt eval w) (coMacguffin w)
-    start = Identity 0 :: Identity Int
+    next run w = CoStoryF (coChange w) (unsafeCoerce . coInterrupt run w) (coMacguffin w)
 
-    coChange w c ct         = (ChangeResult c ct, w)
-    coInterrupt eval w a a' = (undefined, w)
-    coMacguffin w           = (Desirable $ show w, Identity $ 1 + runIdentity w)
+    start :: Store (Set Character) (Set Character)
+    start = store id S.empty
 
-pairEffect :: (Pairing f g, Comonad w, Monad m, Functor f, Functor g)
+    coChange w c ct        = (ChangeResult c ct, seeks (S.insert c) w)
+    coInterrupt run w a a' = ( snd $ run a'
+                             , w =>>> merge a
+                                 =>>> merge a'
+                             )
+      where merge s = seeks (S.union . fst $ run s)
+    coMacguffin w          = (Desirable "", w)
+
+pairEffect :: (Pairing f g, Comonad w, Functor f, Functor g)
            => (a -> b -> r)
            -> CofreeT f w a
-           -> FreeT g m b
-           -> m r
-pairEffect p s c = do
-  mb <- runFreeT c
-  case mb of
-    Pure x -> return $ p (extract s) x
-    Free gs -> pair (pairEffect p) (unwrap s) gs
+           -> Free g b
+           -> r
+pairEffect p s c = case runFree c of
+                     Pure x -> p (extract s) x
+                     Free gs -> pair (pairEffect p) (unwrap s) gs
 
-runStory :: (Monad m, Comonad w) => CoStoryT w m a -> StoryT m b -> m b
-runStory w m = pairEffect (\_ b -> b) w m
+runStory :: Comonad w => CoStoryT w a -> Story b -> (a, b)
+runStory = pairEffect (,)
 
+execStory :: Comonad w => CoStoryT w a -> Story b -> a
+execStory = (fst .) . runStory
 
-dopestory :: StoryT IO Character
+evalStory :: Comonad w => CoStoryT w a -> Story b -> b
+evalStory = (snd .) . runStory
+
+dopestory :: Story Character
 dopestory = do
     let johnny = Character "Mr. Monkey"
     let crab = Character "The Lord of Crabs"
     let scrub = Character "Jared"
-
-    liftIO $ putStrLn "hello"
 
     void . change johnny $ Feel scrub Friend
     thing <- macguffin
     want crab thing
     want scrub thing
 
-    ChangeResult who _ <- interrupt (void $ change crab Leave) $ do
+    ChangeResult who _ <- interrupt (void hypothetical) $ do
+        let brancher = Character "Brancher"
         uh_oh <- kill crab scrub
         change johnny . Learn $ ChangeOf uh_oh
-        change johnny $ Feel crab Enemy
+        change brancher $ Feel crab Enemy
 
     change crab Leave
     change johnny Leave
     kill johnny crab
     thing2 <- macguffin
     return who
+  where
+    hypothetical = do
+        let hypo = Character "Hippo"
+        change hypo Leave
 
