@@ -20,37 +20,28 @@ import RPG.Data.Story
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Set as S
 
+liftCoStory :: Comonad w
+            => w b
+            -> (forall a. (Story a -> (a, b)) -> w b -> CoStoryF (w b))
+            -> CoStoryT w b
+liftCoStory start next = fix $ flip coiterT start . next . runStory
+
 mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
-mkCoStory = fix $ \me -> coiterT (next $ runStory me) start
+mkCoStory = liftCoStory (store id S.empty) next
   where
     next run w = CoStoryF (coChange w) (coInterrupt (unsafeCoerce run) w) (coMacguffin w)
-    start = store id S.empty
 
     coChange w c ct = (ChangeResult c ct, seeks (S.insert c) w)
-    coInterrupt (run :: forall a. Story a -> (Set Character, a))
-                w a a' = ( snd $ run a'
-                         , merge a . merge a' $ w
-                         )
-      where merge s = seeks (S.union . fst $ run s)
+    coInterrupt
+        (run :: forall a. Story a -> (a, Set Character))
+        w a a' = ( fst $ run a'
+                 , merge a . merge a' $ w
+                 )
+      where merge = seeks . S.union . snd . run
     coMacguffin w = (Desirable "", w)
 
-pairEffect :: (Pairing f g, Comonad w, Functor f, Functor g)
-           => (a -> b -> r)
-           -> CofreeT f w a
-           -> Free g b
-           -> r
-pairEffect p s c = case runFree c of
-                     Pure x -> p (extract s) x
-                     Free gs -> pair (pairEffect p) (unwrap s) gs
-
-runStory :: Comonad w => CoStoryT w a -> Story b -> (a, b)
-runStory = pairEffect (,)
-
-execStory :: Comonad w => CoStoryT w a -> Story b -> a
-execStory = (fst .) . runStory
-
-evalStory :: Comonad w => CoStoryT w a -> Story b -> b
-evalStory = (snd .) . runStory
+runStory :: Comonad w => CoStoryT w b -> Story a -> (a, b)
+runStory = pairEffect $ flip (,)
 
 dopestory :: Story Character
 dopestory = do

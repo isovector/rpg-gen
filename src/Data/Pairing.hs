@@ -7,6 +7,7 @@
 
 module Data.Pairing
     ( Pairing(..)
+    , pairEffect
     ) where
 
 import Control.Comonad (Comonad, extract)
