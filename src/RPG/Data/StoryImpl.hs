@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module RPG.Data.StoryImpl
     ( runStory
@@ -18,25 +20,21 @@ import RPG.Data.Story
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Set as S
 
-infixl 1 =>>>
-(=>>>) :: Comonad w => w a -> (w a -> w b) -> w b
-a =>>> f = a =>> extract . f
-
 mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
 mkCoStory = fix $ \me -> coiterT (next $ runStory me) start
   where
-    next run w = CoStoryF (coChange w) (unsafeCoerce . coInterrupt run w) (coMacguffin w)
+    next run w = CoStoryF (coChange w) (coInterrupt (unsafeCoerce run) w) (coMacguffin w)
 
     start :: Store (Set Character) (Set Character)
     start = store id S.empty
 
-    coChange w c ct        = (ChangeResult c ct, seeks (S.insert c) w)
-    coInterrupt run w a a' = ( snd $ run a'
-                             , w =>>> merge a
-                                 =>>> merge a'
-                             )
+    coChange w c ct = (ChangeResult c ct, seeks (S.insert c) w)
+    coInterrupt (run :: forall a. Story a -> (Set Character, a))
+                w a a' = ( snd $ run a'
+                         , merge a . merge a' $ w
+                         )
       where merge s = seeks (S.union . fst $ run s)
-    coMacguffin w          = (Desirable "", w)
+    coMacguffin w = (Desirable "", w)
 
 pairEffect :: (Pairing f g, Comonad w, Functor f, Functor g)
            => (a -> b -> r)
@@ -67,7 +65,7 @@ dopestory = do
     want crab thing
     want scrub thing
 
-    ChangeResult who _ <- interrupt (void hypothetical) $ do
+    ChangeResult who _ <- interrupt hypothetical $ do
         let brancher = Character "Brancher"
         uh_oh <- kill crab scrub
         change johnny . Learn $ ChangeOf uh_oh
