@@ -59,7 +59,7 @@ data ChangeType = Introduce
                 deriving (Eq, Show)
 
 data StoryF a = Change Character ChangeType (ChangeResult -> a)
-              | forall b c. Interrupt (Free StoryF c) (Free StoryF b) (b -> a)
+              | forall x x'. Interrupt (Free StoryF x') (Free StoryF x) (x -> a)
               | Macguffin (Desirable -> a)
 
 -- IDEA(sandy): Possible to make a StoryWInterruptF = LiftStoryF StoryF
@@ -68,12 +68,12 @@ data StoryF a = Change Character ChangeType (ChangeResult -> a)
 
 instance Functor StoryF where
     fmap f (Change c ct k)   = Change c ct (f . k)
-    fmap f (Interrupt a b k) = Interrupt a b (f . k)
+    fmap f (Interrupt a x k) = Interrupt a x (f . k)
     fmap f (Macguffin k)     = Macguffin (f . k)
 
 data CoStoryF k = CoStoryF
                   { changeH    :: Character -> ChangeType -> (ChangeResult, k)
-                  , interruptH :: forall b c. Free StoryF c -> Free StoryF b -> (b, k)
+                  , interruptH :: forall x x'. Free StoryF x' -> Free StoryF x -> (x, k)
                   , macguffinH :: (Desirable, k)
                   }
 
@@ -94,8 +94,8 @@ instance Pairing CoStoryF StoryF where
 change :: Character -> ChangeType -> Story ChangeResult
 change c ct = liftF $ Change c ct id
 
-interrupt :: Story c -> Story b -> Story b
-interrupt a b = liftF $ Interrupt a b id
+interrupt :: Story c -> Story x -> Story x
+interrupt a x = liftF $ Interrupt a x id
 
 macguffin :: Story Desirable
 macguffin = liftF $ Macguffin id

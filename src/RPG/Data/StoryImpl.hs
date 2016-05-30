@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module RPG.Data.StoryImpl
@@ -22,23 +22,34 @@ import qualified Data.Set as S
 
 liftCoStory :: Comonad w
             => w b
-            -> (forall a. (Story a -> (a, b)) -> w b -> CoStoryF (w b))
+            -> (w b -> Character -> ChangeType -> (ChangeResult, w b))
+            -> (forall x x' . (forall a. Story a -> (a, b))
+                           -> w b
+                           -> Story x'
+                           -> Story x
+                           -> (x, w b))
+            -> (w b -> (Desirable, w b))
             -> CoStoryT w b
-liftCoStory start next = fix $ flip coiterT start . next . runStory
+liftCoStory start changeH interruptH macguffinH =
+    fix $ flip coiterT start . next . runStory
+  where
+    next run w =
+        CoStoryF
+            (changeH w)
+            (interruptH (unsafeCoerce run) w)
+            (macguffinH w)
 
 mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
-mkCoStory = liftCoStory (store id S.empty) next
+mkCoStory = liftCoStory (store id S.empty) changeH interruptH macguffinH
   where
-    next run w = CoStoryF (coChange w) (coInterrupt (unsafeCoerce run) w) (coMacguffin w)
-
-    coChange w c ct = (ChangeResult c ct, seeks (S.insert c) w)
-    coInterrupt
+    changeH w c ct = (ChangeResult c ct, seeks (S.insert c) w)
+    interruptH
         (run :: forall a. Story a -> (a, Set Character))
         w a a' = ( fst $ run a'
                  , merge a . merge a' $ w
                  )
       where merge = seeks . S.union . snd . run
-    coMacguffin w = (Desirable "", w)
+    macguffinH w = (Desirable "", w)
 
 runStory :: Comonad w => CoStoryT w b -> Story a -> (a, b)
 runStory = pairEffect $ flip (,)
