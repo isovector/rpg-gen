@@ -25,7 +25,7 @@ module RPG.Data.Story
     , learnOf
     ) where
 
-import Control.Monad.Trans.Free
+import Control.Monad.Free
 import Control.Comonad.Trans.Cofree
 import Data.Pairing
 
@@ -86,10 +86,10 @@ instance Functor CoStoryF where
 type Story = Free StoryF
 type CoStoryT = CofreeT CoStoryF
 
-instance Pairing CoStoryF StoryF where
-    pair f (CoStoryF t _ _) (Change c ct k)    = pair f (t c ct) k
-    pair f (CoStoryF _ t _) (Interrupt a a' k) = pair f (t a a') k
-    pair f (CoStoryF _ _ t) (Macguffin k)      = pair f t k
+instance Zap StoryF CoStoryF where
+    zap f (Change    c ct k) (CoStoryF h _ _) = zap f k (h c ct)
+    zap f (Interrupt a a' k) (CoStoryF _ h _) = zap f k (h a a')
+    zap f (Macguffin      k) (CoStoryF _ _ h) = zap f k h
 
 change :: Character -> ChangeType -> Story ChangeResult
 change c ct = liftF $ Change c ct id

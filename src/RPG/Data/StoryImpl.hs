@@ -12,7 +12,7 @@ import Control.Comonad
 import Control.Comonad.Store
 import Control.Comonad.Trans.Cofree
 import Control.Monad (void)
-import Control.Monad.Trans.Free
+import Control.Monad.Free
 import Data.Function (fix)
 import Data.Pairing
 import Data.Set (Set)
@@ -31,7 +31,7 @@ liftCoStory :: Comonad w
             -> (w b -> (Desirable, w b))
             -> CoStoryT w b
 liftCoStory start changeH interruptH macguffinH =
-    fix $ flip coiterT start . next . runStory
+    fix $ flip coiterT start . next . flip runStory
   where
     next run w =
         CoStoryF
@@ -51,8 +51,8 @@ mkCoStory = liftCoStory (store id S.empty) changeH interruptH macguffinH
       where merge = seeks . S.union . snd . run
     macguffinH w = (Desirable "", w)
 
-runStory :: Comonad w => CoStoryT w b -> Story a -> (a, b)
-runStory = pairEffect $ flip (,)
+runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
+runStory = pairEffect (,)
 
 dopestory :: Story Character
 dopestory = do

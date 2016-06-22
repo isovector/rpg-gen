@@ -1,12 +1,11 @@
--- from https://github.com/dalaing/cofun/blob/2254b7da8a340b658c418823911f28be637dbc84/code/cofun-pairing/src/Util/Pairing.hs
-
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Pairing
-    ( Pairing(..)
+    ( Zap(..)
     , pairEffect
     ) where
 
@@ -14,33 +13,28 @@ import Control.Comonad (Comonad, extract)
 import Control.Comonad.Cofree (Cofree (..), unwrap)
 import Control.Comonad.Trans.Cofree (CofreeT ())
 import Control.Monad.Free (Free (..))
-import Control.Monad.Trans.Free (runFree)
-import qualified Control.Monad.Trans.Free as TF
-import Data.Functor.Identity (Identity (..))
 
-class Pairing f g | f -> g, g -> f where
-    pair :: (a -> b -> r) -> f a -> g b -> r
+class Zap f g | f -> g, g -> f where
+    zap :: (a -> b -> r) -> f a -> g b -> r
 
-instance Pairing Identity Identity where
-    pair f (Identity a) (Identity b) = f a b
+instance Zap f g => Zap g f where
+    zap f a b = zap (flip f) b a
 
-instance Pairing f g => Pairing (Cofree f) (Free g) where
-    pair p (a :< _ ) (Pure x)  = p a x
-    pair p (_ :< fs) (Free gs) = pair (pair p) fs gs
+instance Zap f g => Zap (Free f) (Cofree g) where
+    zap p (Pure a ) (b :< _ ) = p a b
+    zap p (Free as) (_ :< bs) = zap (zap p) as bs
 
-instance Pairing ((->) a) ((,) a) where
-    pair p f = uncurry (p . f)
+instance Zap ((,) a) ((->) a) where
+    zap f (x, a) xtob = f a (xtob x)
 
-instance Pairing ((,) a) ((->) a) where
-    pair p f g = p (snd f) (g (fst f))
-
-pairEffect :: (Pairing f g, Comonad w, Functor f, Functor g)
-           => (a -> b -> r)
-           -> CofreeT f w a
-           -> TF.Free g b
-           -> r
-pairEffect p s c =
-    case runFree c of
-      TF.Pure x -> p (extract s) x
-      TF.Free gs -> pair (pairEffect p) (unwrap s) gs
+pairEffect :: ( Zap f g
+              , Comonad w
+              , Functor g
+              )
+           => (a -> b -> c)
+           -> Free f a
+           -> CofreeT g w b
+           -> c
+pairEffect f (Pure a ) b =                 f  a  $ extract b
+pairEffect f (Free as) b = zap (pairEffect f) as $ unwrap  b
 
