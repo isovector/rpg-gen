@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Pairing
@@ -17,7 +16,7 @@ import Control.Monad.Free (Free (..))
 class Zap f g | f -> g, g -> f where
     zap :: (a -> b -> r) -> f a -> g b -> r
 
-instance Zap f g => Zap g f where
+instance {-# OVERLAPPABLE #-} Zap f g => Zap g f where
     zap f a b = zap (flip f) b a
 
 instance Zap f g => Zap (Free f) (Cofree g) where
