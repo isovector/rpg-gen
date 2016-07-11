@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -29,6 +30,8 @@ import Control.Monad.Free
 import Control.Comonad.Trans.Cofree
 import Data.Pairing
 
+newtype App f g = App { runApp :: g }
+
 data Desirable = Desirable String deriving (Eq, Ord)
 instance Show Desirable where
     show (Desirable name) = name
@@ -58,22 +61,26 @@ data ChangeType = Introduce
                 | Feel Character Opinion
                 deriving (Eq, Show)
 
-data StoryF a = Change Character ChangeType (ChangeResult -> a)
-              | forall x x'. Interrupt (Free StoryF x') (Free StoryF x) (x -> a)
-              | Macguffin (Desirable -> a)
+data StoryF g a = Change Character ChangeType (g ChangeResult a)
+                | forall x x'. Interrupt (Free (StoryF g) x')
+                                         (Free (StoryF g) x)
+                                         (g x a)
+                | Macguffin (g Desirable a)
 
 -- IDEA(sandy): Possible to make a StoryWInterruptF = LiftStoryF StoryF
 -- | Interrupted, and use typeclasses to define the value-level commands so
 -- that `interrupted` only becomes available inside of an `interrupt` block?
 
-instance Functor StoryF where
+instance Functor (StoryF (->)) where
     fmap f (Change c ct k)   = Change c ct (f . k)
     fmap f (Interrupt a x k) = Interrupt a x (f . k)
     fmap f (Macguffin k)     = Macguffin (f . k)
 
 data CoStoryF k = CoStoryF
                   { changeH    :: Character -> ChangeType -> (ChangeResult, k)
-                  , interruptH :: forall x x'. Free StoryF x' -> Free StoryF x -> (x, k)
+                  , interruptH :: forall x x'. Free (StoryF (->)) x'
+                                            -> Free (StoryF (->)) x
+                                            -> (x, k)
                   , macguffinH :: (Desirable, k)
                   }
 
@@ -83,10 +90,11 @@ instance Functor CoStoryF where
         (fmap (fmap (fmap f)) i)
         (fmap f m)
 
-type Story = Free StoryF
+type Story = Free (StoryF (->))
+type StoryApp = Free (StoryF App)
 type CoStoryT = CofreeT CoStoryF
 
-instance Zap StoryF CoStoryF where
+instance Zap (StoryF (->)) CoStoryF where
     zap f (Change    c ct k) (CoStoryF h _ _) = zap f k (h c ct)
     zap f (Interrupt a a' k) (CoStoryF _ h _) = zap f k (h a a')
     zap f (Macguffin      k) (CoStoryF _ _ h) = zap f k h

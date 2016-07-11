@@ -51,6 +51,18 @@ mkCoStory = liftCoStory (store id S.empty) changeH interruptH macguffinH
       where merge = seeks . S.union . snd . run
     macguffinH w = (Desirable "", w)
 
+appStory :: CoStoryT (Store Int) ()
+appStory = liftCoStory (store (const ()) 0) changeH interruptH macguffinH
+  where
+    changeH w c ct = (ChangeResult c ct, w)
+    interruptH
+        (run :: forall a. Story a -> (a, ()))
+        w a a' = (fst $ run a', w)
+    macguffinH w = (Desirable . show $ pos w, seeks (+1) w)
+
+-- apply :: Story a -> StoryApp a
+-- apply =
+
 runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
 runStory = pairEffect (,)
 
