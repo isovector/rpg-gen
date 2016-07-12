@@ -65,8 +65,7 @@ appStory = liftCoStory (store (const ()) 0) changeH interruptH macguffinH
 
 apply :: Int -> Story a -> StoryApp a
 apply i (Free (Change c ct k)) = Free
-                               . Change  c ct
-                               . Snd
+                               . Change c ct
                                . apply i
                                . k
                                $ ChangeResult c ct
@@ -74,12 +73,10 @@ apply i (Free (Interrupt a a' k)) =
     let b = fst $ runStory a' appStory
      in   Free
         . Interrupt (apply i a) (apply i a')
-        . Snd
         . apply i
         $ k b
 apply i (Free (Macguffin k)) = Free
                              . Macguffin
-                             . Snd
                              . apply (i + 1)
                              . k
                              . Desirable
@@ -98,12 +95,12 @@ scata alg f = fcata alg f . apply 0
 
 
 characters :: Algebra (StoryF Snd) (Set Character)
-characters ((Change c (Kill c') (Snd cs))) = S.insert c $ S.insert c' cs
-characters (Change c (Feel c' _) (Snd cs)) = S.insert c $ S.insert c' cs
-characters (Change c _ (Snd cs)) = S.insert c cs
+characters (Change c (Kill c')   cs) = S.insert c $ S.insert c' cs
+characters (Change c (Feel c' _) cs) = S.insert c $ S.insert c' cs
+characters (Change c _ cs) = S.insert c cs
 characters (Interrupt (fcata characters (const S.empty) -> as)
-                      (fcata characters (const S.empty) -> bs) (Snd cs)) = mconcat [as, bs, cs]
-characters (Macguffin (Snd cs)) = cs
+                      (fcata characters (const S.empty) -> bs) cs) = mconcat [as, bs, cs]
+characters (Macguffin cs) = cs
 
 
 runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)

@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -32,7 +33,12 @@ import Control.Monad.Free
 import Control.Comonad.Trans.Cofree
 import Data.Pairing
 
+
 newtype Snd f g = Snd { runSnd :: g } deriving Functor
+
+type family Apply g a b :: * where
+    Apply (->) a b = a -> b
+    Apply Snd  a b = b
 
 data Desirable = Desirable String deriving (Eq, Ord)
 instance Show Desirable where
@@ -63,16 +69,16 @@ data ChangeType = Introduce
                 | Feel Character Opinion
                 deriving (Eq, Show)
 
-data StoryF g a = Change Character ChangeType (g ChangeResult a)
+data StoryF g a = Change Character ChangeType (Apply g ChangeResult a)
                 | forall x x'. Interrupt (Free (StoryF g) x')
                                          (Free (StoryF g) x)
-                                         (g x a)
-                | Macguffin (g Desirable a)
+                                         (Apply g x a)
+                | Macguffin (Apply g Desirable a)
 
 instance Functor (StoryF Snd) where
-    fmap f (Change c ct k)   = Change    c ct (fmap f k)
-    fmap f (Interrupt a x k) = Interrupt a x  (fmap f k)
-    fmap f (Macguffin k)     = Macguffin      (fmap f k)
+    fmap f (Change c ct k)   = Change    c ct (f k)
+    fmap f (Interrupt a x k) = Interrupt a x  (f k)
+    fmap f (Macguffin k)     = Macguffin      (f k)
 
 instance Functor (StoryF (->)) where
     fmap f (Change c ct k)   = Change    c ct (fmap f k)
