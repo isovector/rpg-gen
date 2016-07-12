@@ -60,8 +60,28 @@ appStory = liftCoStory (store (const ()) 0) changeH interruptH macguffinH
         w a a' = (fst $ run a', w)
     macguffinH w = (Desirable . show $ pos w, seeks (+1) w)
 
--- apply :: Story a -> StoryApp a
--- apply =
+apply :: Int -> Story a -> StoryApp a
+apply i (Free (Change c ct k)) = Free
+                               . Change  c ct
+                               . Snd
+                               . apply i
+                               . k
+                               $ ChangeResult c ct
+apply i (Free (Interrupt a a' k)) =
+    let b = fst $ runStory a' appStory
+     in   Free
+        . Interrupt (apply i a) (apply i a')
+        . Snd
+        . apply i
+        $ k b
+apply i (Free (Macguffin k)) = Free
+                             . Macguffin
+                             . Snd
+                             . apply (i + 1)
+                             . k
+                             . Desirable
+                             $ show i
+apply _ (Pure a) = Pure a
 
 runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
 runStory = pairEffect (,)
