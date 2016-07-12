@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -6,6 +7,8 @@ module RPG.Data.StoryImpl
     ( runStory
     , dopestory
     , mkCoStory
+    , scata
+    , characters
     ) where
 
 import Control.Comonad
@@ -82,6 +85,26 @@ apply i (Free (Macguffin k)) = Free
                              . Desirable
                              $ show i
 apply _ (Pure a) = Pure a
+
+type Algebra f a = f a -> a
+newtype Fix f = Iso { invIso :: f (Fix f) }
+
+fcata :: Functor f => Algebra f a -> (b -> a) -> Free f b -> a
+fcata alg f (Pure b) = f b
+fcata alg f (Free free) = alg . fmap (fcata alg f) $ free
+
+scata :: Algebra (StoryF Snd) a -> (b -> a) -> Story b -> a
+scata alg f = fcata alg f . apply 0
+
+
+characters :: Algebra (StoryF Snd) (Set Character)
+characters ((Change c (Kill c') (Snd cs))) = S.insert c $ S.insert c' cs
+characters (Change c (Feel c' _) (Snd cs)) = S.insert c $ S.insert c' cs
+characters (Change c _ (Snd cs)) = S.insert c cs
+characters (Interrupt (fcata characters (const S.empty) -> as)
+                      (fcata characters (const S.empty) -> bs) (Snd cs)) = mconcat [as, bs, cs]
+characters (Macguffin (Snd cs)) = cs
+
 
 runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
 runStory = pairEffect (,)
