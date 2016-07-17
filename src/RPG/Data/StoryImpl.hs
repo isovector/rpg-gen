@@ -17,6 +17,8 @@ import Control.Comonad.Trans.Cofree
 import Control.Monad (void)
 import Control.Monad.Free
 import Data.Function (fix)
+import Data.Functor.Compose
+import Data.Functor.Identity
 import Data.Pairing
 import Data.Set (Set)
 import RPG.Data.Story
@@ -46,34 +48,31 @@ mkCoStory start changeH interruptH macguffinH =
             (interruptH (unsafeCoerce run) w)
             (macguffinH w)
 
-appStory :: CoStoryT (Store Int) ()
-appStory = mkCoStory (store (const ()) 0) changeH interruptH macguffinH
-  where
-    changeH w c ct = (ChangeResult c ct, w)
-    interruptH
-        (run :: forall a. Story a -> (a, ()))
-        w a a' = (fst $ run a', w)
-    macguffinH w = (Desirable . show $ pos w, seeks (+1) w)
+-- appStory' :: CoStoryT Identity (Free Some Int)
+-- appStory' = mkCoStory (Identity $ Pure 0) changeH interruptH macguffinH
+--   where
+--     changeH w c ct = (ChangeResult c ct, fmap (>> Free (One $ Pure 0)) w)
+--     interruptH
+--         (run :: forall a. Story a -> (a, Free Some Int))
+--         w x y = let (_, i) = run x
+--                     (a, j) = run y
+--                  in (a, fmap (>> Free (Two i j)) w)
+--     macguffinH w = (Desirable "", fmap (>> Free (One $ Pure 1)) w)
 
-apply :: Int -> Story a -> StoryApp a
-apply i (Free (Change c ct k)) = Free
-                               . Change c ct
-                               . apply i
-                               . k
-                               $ ChangeResult c ct
-apply i (Free (Interrupt a a' k)) =
-    let b = fst $ runStory a' appStory
-     in   Free
-        . Interrupt (apply i a) (apply i a')
-        . apply i
-        $ k b
-apply i (Free (Macguffin k)) = Free
-                             . Macguffin
-                             . apply (i + 1)
-                             . k
-                             . Desirable
-                             $ show i
-apply _ (Pure a) = Pure a
+apply :: Story a -> StoryApp a
+apply = (\(_,_,a) -> a) . go 0
+  where
+    go :: Int -> Story a -> (Int, a, StoryApp a)
+    go i (Free (Change c ct k)) =
+        let (i', a, k') = go i . k $ ChangeResult c ct
+        in (i', a, Free $ Change c ct k')
+    go i (Free (Interrupt x y k)) =
+        let (i',   _, x') = go i  x
+            (i'',  r, y') = go i' y
+            (i''', a, k') = go i'' $ k r
+        in (i''', a, Free $ Interrupt x' y' k')
+    go i (Free (Macguffin k)) = go (i + 1) . k . Desirable $ show i
+    go i (Pure a) = (i, a, Pure a)
 
 reify :: forall a b. a -> StoryApp b -> StoryRei a
 reify a = fcata alg (const $ Pure a)
@@ -91,10 +90,10 @@ fcata alg f (Pure b) = f b
 fcata alg f (Free free) = alg . fmap (fcata alg f) $ free
 
 acata :: Algebra (StoryF 'Applied) a -> (b -> a) -> Story b -> a
-acata alg f = fcata alg f . apply 0
+acata alg f = fcata alg f . apply
 
 rcata :: Algebra (StoryF 'Reified) a -> a -> Story b -> a
-rcata alg a = fcata alg (const a) . reify a . apply 0
+rcata alg a = fcata alg (const a) . reify a . apply
 
 characters :: Algebra (StoryF 'Reified) (Set Character)
 characters (Change c (Kill c')   cs) = S.insert c $ S.insert c' cs
