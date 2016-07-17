@@ -23,36 +23,21 @@ import RPG.Data.Story
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Set as S
 
-liftCoStoryApp :: Comonad w
-               => w b
-               -> (w b -> Character -> ChangeType -> w b)
-               -> (forall x y . (forall a. Story a -> b)
-                             -> w b
-                             -> StoryApp x
-                             -> StoryApp y
-                             -> w b)
-               -> (w b -> w b)
-               -> CoStoryAppT w b
-liftCoStoryApp start changeH interruptH macguffinH =
-    fix $ flip coiterT start . next . flip runStoryApp
-  where
-    next run w =
-        CoStoryF
-            (changeH w)
-            (interruptH (unsafeCoerce run) w)
-            (macguffinH w)
-
-liftCoStory :: Comonad w
-            => w b
-            -> (w b -> Character -> ChangeType -> (ChangeResult, w b))
-            -> (forall x y . (forall a. Story a -> (a, b))
-                          -> w b
-                          -> Story x
-                          -> Story y
-                          -> (y, w b))
-            -> (w b -> (Desirable, w b))
-            -> CoStoryT w b
-liftCoStory start changeH interruptH macguffinH =
+mkCoStory :: ( Comonad w
+             , Functor (StoryF s)
+             , Functor (CoStoryF s)
+             , Zap (StoryF s) (CoStoryF s)
+             )
+          => w b
+          -> (w b -> Character -> ChangeType -> Cx s ChangeResult (,) (w b))
+          -> (forall x y . (forall a. Free (StoryF s) a -> Cx s a (,) b)
+                        -> w b
+                        -> Free (StoryF s) x
+                        -> Free (StoryF s) y
+                        -> Cx s y (,) (w b))
+          -> (w b -> Cx s Desirable (,) (w b))
+          -> CofreeT (CoStoryF s) w b
+mkCoStory start changeH interruptH macguffinH =
     fix $ flip coiterT start . next . flip runStory
   where
     next run w =
@@ -62,7 +47,7 @@ liftCoStory start changeH interruptH macguffinH =
             (macguffinH w)
 
 appStory :: CoStoryT (Store Int) ()
-appStory = liftCoStory (store (const ()) 0) changeH interruptH macguffinH
+appStory = mkCoStory (store (const ()) 0) changeH interruptH macguffinH
   where
     changeH w c ct = (ChangeResult c ct, w)
     interruptH
@@ -119,10 +104,14 @@ characters (Interrupt as bs cs) = mconcat [as, bs, cs]
 characters (Macguffin cs) = cs
 
 
-runStoryApp :: Comonad w => StoryApp a -> CoStoryAppT w b -> (a, b)
-runStoryApp = pairEffect (,)
-
-runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
+runStory :: ( Comonad w
+            , Functor (StoryF s)
+            , Functor (CoStoryF s)
+            , Zap (StoryF s) (CoStoryF s)
+            )
+         => Free (StoryF s) a
+         -> CofreeT (CoStoryF s) w b
+         -> (a, b)
 runStory = pairEffect (,)
 
 dopestory :: Story Character

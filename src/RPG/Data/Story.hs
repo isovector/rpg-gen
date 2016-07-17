@@ -26,6 +26,7 @@ module RPG.Data.Story
     , CoStoryApp
     , CoStoryAppT
     , ReduceState (..)
+    , Cx
     , change
     , interrupt
     , macguffin
