@@ -104,7 +104,7 @@ instance Functor (StoryF 'Reified) where
 
 data CoStoryF k = CoStoryF
                   { changeH    :: Character -> ChangeType -> (ChangeResult, k)
-                  , interruptH :: forall y x. Free (StoryF 'Constructed) x
+                  , interruptH :: forall x y. Free (StoryF 'Constructed) x
                                            -> Free (StoryF 'Constructed) y
                                            -> (y, k)
                   , macguffinH :: (Desirable, k)
@@ -123,14 +123,14 @@ type CoStoryT = CofreeT CoStoryF
 
 instance Zap (StoryF 'Constructed) CoStoryF where
     zap f (Change    c ct k) (CoStoryF h _ _) = zap f k (h c ct)
-    zap f (Interrupt a a' k) (CoStoryF _ h _) = zap f k (h a a')
+    zap f (Interrupt x y  k) (CoStoryF _ h _) = zap f k (h x y)
     zap f (Macguffin      k) (CoStoryF _ _ h) = zap f k h
 
 change :: Character -> ChangeType -> Story ChangeResult
 change c ct = liftF $ Change c ct id
 
-interrupt :: Story c -> Story y -> Story y
-interrupt a y = liftF $ Interrupt a y id
+interrupt :: Story x -> Story y -> Story y
+interrupt x y = liftF $ Interrupt x y id
 
 macguffin :: Story Desirable
 macguffin = liftF $ Macguffin id
