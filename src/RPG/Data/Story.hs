@@ -71,46 +71,46 @@ data ChangeType = Introduce
 
 data ReduceState = Constructed | Applied | Reified
 
-type family Select s a b :: * where
-    Select 'Constructed a b = a -> b
-    Select 'Applied     a b = b
-    Select 'Reified     a b = b
+type family Cx s a f b :: * where
+    Cx 'Constructed a f b = f a b
+    Cx 'Applied     a f b = b
+    Cx 'Reified     a f b = b
 
-type family Ignore s a b :: * where
-    Ignore 'Constructed a b = a
-    Ignore 'Applied     a b = a
-    Ignore 'Reified     a b = b
+type family ReifyAs s a b :: * where
+    ReifyAs 'Constructed a b = a
+    ReifyAs 'Applied     a b = a
+    ReifyAs 'Reified     a b = b
 
-data StoryF s a = Change Character ChangeType (Select s ChangeResult a)
-                | forall x y. Interrupt (Ignore s (Free (StoryF s) x) a)
-                                        (Ignore s (Free (StoryF s) y) a)
-                                        (Select s y a)
-                | Macguffin (Select s Desirable a)
-
-instance Functor (StoryF 'Applied) where
-    fmap f (Change c ct k)   = Change    c ct (f k)
-    fmap f (Interrupt x y k) = Interrupt x y  (f k)
-    fmap f (Macguffin k)     = Macguffin      (f k)
+data StoryF s a = Change Character ChangeType (Cx s ChangeResult (->) a)
+                | forall x y. Interrupt (ReifyAs s (Free (StoryF s) x) a)
+                                        (ReifyAs s (Free (StoryF s) y) a)
+                                        (Cx s y (->) a)
+                | Macguffin (Cx s Desirable (->) a)
 
 instance Functor (StoryF 'Constructed) where
     fmap f (Change c ct k)   = Change    c ct (fmap f k)
     fmap f (Interrupt x y k) = Interrupt x y  (fmap f k)
     fmap f (Macguffin k)     = Macguffin      (fmap f k)
 
+instance Functor (StoryF 'Applied) where
+    fmap f (Change c ct k)   = Change    c ct (f k)
+    fmap f (Interrupt x y k) = Interrupt x y  (f k)
+    fmap f (Macguffin k)     = Macguffin      (f k)
+
 instance Functor (StoryF 'Reified) where
     fmap f (Change c ct k)   = Change     c     ct   (f k)
     fmap f (Interrupt x y k) = Interrupt (f x) (f y) (f k)
     fmap f (Macguffin k)     = Macguffin             (f k)
 
-data CoStoryF k = CoStoryF
-                  { changeH    :: Character -> ChangeType -> (ChangeResult, k)
-                  , interruptH :: forall x y. Free (StoryF 'Constructed) x
-                                           -> Free (StoryF 'Constructed) y
-                                           -> (y, k)
-                  , macguffinH :: (Desirable, k)
+data CoStoryF s k = CoStoryF
+                  { changeH    :: Character -> ChangeType -> Cx s ChangeResult (,) k
+                  , interruptH :: forall x y. Free (StoryF s) x
+                                           -> Free (StoryF s) y
+                                           -> Cx s y (,) k
+                  , macguffinH :: Cx s Desirable (,) k
                   }
 
-instance Functor CoStoryF where
+instance Functor (CoStoryF 'Constructed) where
     fmap f (CoStoryF c i m) = CoStoryF
         ((fmap . fmap . fmap) f c)
         ((fmap . fmap . fmap) f i)
@@ -119,12 +119,18 @@ instance Functor CoStoryF where
 type Story = Free (StoryF 'Constructed)
 type StoryApp = Free (StoryF 'Applied)
 type StoryRei = Free (StoryF 'Reified)
-type CoStoryT = CofreeT CoStoryF
+type CoStoryT = CofreeT (CoStoryF 'Constructed)
+type CoStoryAppT = CofreeT (CoStoryF 'Applied)
 
-instance Zap (StoryF 'Constructed) CoStoryF where
+instance Zap (StoryF 'Constructed) (CoStoryF 'Constructed) where
     zap f (Change    c ct k) (CoStoryF h _ _) = zap f k (h c ct)
     zap f (Interrupt x y  k) (CoStoryF _ h _) = zap f k (h x y)
     zap f (Macguffin      k) (CoStoryF _ _ h) = zap f k h
+
+instance Zap (StoryF 'Applied) (CoStoryF 'Applied) where
+    zap f (Change    c ct k) (CoStoryF h _ _) = f k (h c ct)
+    zap f (Interrupt x y  k) (CoStoryF _ h _) = f k (h x y)
+    zap f (Macguffin      k) (CoStoryF _ _ h) = f k h
 
 change :: Character -> ChangeType -> Story ChangeResult
 change c ct = liftF $ Change c ct id
