@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,6 +8,7 @@ module RPG.Data.StoryImpl
     , dopestory
     , mkCoStory
     , scata
+    , rcata
     , characters
     ) where
 
@@ -26,11 +27,11 @@ import qualified Data.Set as S
 liftCoStory :: Comonad w
             => w b
             -> (w b -> Character -> ChangeType -> (ChangeResult, w b))
-            -> (forall x x' . (forall a. Story a -> (a, b))
-                           -> w b
-                           -> Story x'
-                           -> Story x
-                           -> (x, w b))
+            -> (forall x y . (forall a. Story a -> (a, b))
+                          -> w b
+                          -> Story x
+                          -> Story y
+                          -> (y, w b))
             -> (w b -> (Desirable, w b))
             -> CoStoryT w b
 liftCoStory start changeH interruptH macguffinH =
@@ -83,6 +84,14 @@ apply i (Free (Macguffin k)) = Free
                              $ show i
 apply _ (Pure a) = Pure a
 
+reify :: forall a b. a -> StoryApp b -> StoryRei a
+reify a = fcata alg (const $ Pure a)
+  where
+    alg :: Algebra (StoryF 'Applied) (StoryRei a)
+    alg (Change c ct k)   = Free $ Change c ct k
+    alg (Interrupt x y k) = Free $ Interrupt (reify a x) (reify a y) k
+    alg (Macguffin k)     = Free $ Macguffin k
+
 type Algebra f a = f a -> a
 newtype Fix f = Iso { invIso :: f (Fix f) }
 
@@ -90,16 +99,17 @@ fcata :: Functor f => Algebra f a -> (b -> a) -> Free f b -> a
 fcata alg f (Pure b) = f b
 fcata alg f (Free free) = alg . fmap (fcata alg f) $ free
 
-scata :: Algebra (StoryF Snd) a -> (b -> a) -> Story b -> a
+scata :: Algebra (StoryF 'Applied) a -> (b -> a) -> Story b -> a
 scata alg f = fcata alg f . apply 0
 
+rcata :: Algebra (StoryF 'Reified) a -> a -> Story b -> a
+rcata alg a = fcata alg (const a) . reify a . apply 0
 
-characters :: Algebra (StoryF Snd) (Set Character)
+characters :: Algebra (StoryF 'Reified) (Set Character)
 characters (Change c (Kill c')   cs) = S.insert c $ S.insert c' cs
 characters (Change c (Feel c' _) cs) = S.insert c $ S.insert c' cs
 characters (Change c _ cs) = S.insert c cs
-characters (Interrupt (fcata characters (const S.empty) -> as)
-                      (fcata characters (const S.empty) -> bs) cs) = mconcat [as, bs, cs]
+characters (Interrupt as bs cs) = mconcat [as, bs, cs]
 characters (Macguffin cs) = cs
 
 
