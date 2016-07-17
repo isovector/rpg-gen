@@ -23,6 +23,8 @@ module RPG.Data.Story
     , Snd (..)
     , StoryApp
     , StoryRei
+    , CoStoryApp
+    , CoStoryAppT
     , ReduceState (..)
     , change
     , interrupt
@@ -116,9 +118,17 @@ instance Functor (CoStoryF 'Constructed) where
         ((fmap . fmap . fmap) f i)
         (fmap f m)
 
+instance Functor (CoStoryF 'Applied) where
+    fmap f (CoStoryF c i m) = CoStoryF
+        ((fmap . fmap) f c)
+        ((fmap . fmap) f i)
+        (f m)
+
 type Story = Free (StoryF 'Constructed)
 type StoryApp = Free (StoryF 'Applied)
 type StoryRei = Free (StoryF 'Reified)
+type CoStory = Cofree (CoStoryF 'Constructed)
+type CoStoryApp = Cofree (CoStoryF 'Applied)
 type CoStoryT = CofreeT (CoStoryF 'Constructed)
 type CoStoryAppT = CofreeT (CoStoryF 'Applied)
 

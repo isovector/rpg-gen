@@ -6,8 +6,7 @@
 module RPG.Data.StoryImpl
     ( runStory
     , dopestory
-    , mkCoStory
-    , scata
+    , acata
     , rcata
     , characters
     ) where
@@ -23,6 +22,25 @@ import Data.Set (Set)
 import RPG.Data.Story
 import Unsafe.Coerce (unsafeCoerce)
 import qualified Data.Set as S
+
+liftCoStoryApp :: Comonad w
+               => w b
+               -> (w b -> Character -> ChangeType -> w b)
+               -> (forall x y . (forall a. Story a -> b)
+                             -> w b
+                             -> StoryApp x
+                             -> StoryApp y
+                             -> w b)
+               -> (w b -> w b)
+               -> CoStoryAppT w b
+liftCoStoryApp start changeH interruptH macguffinH =
+    fix $ flip coiterT start . next . flip runStoryApp
+  where
+    next run w =
+        CoStoryF
+            (changeH w)
+            (interruptH (unsafeCoerce run) w)
+            (macguffinH w)
 
 liftCoStory :: Comonad w
             => w b
@@ -42,18 +60,6 @@ liftCoStory start changeH interruptH macguffinH =
             (changeH w)
             (interruptH (unsafeCoerce run) w)
             (macguffinH w)
-
-mkCoStory :: CoStoryT (Store (Set Character)) (Set Character)
-mkCoStory = liftCoStory (store id S.empty) changeH interruptH macguffinH
-  where
-    changeH w c ct = (ChangeResult c ct, seeks (S.insert c) w)
-    interruptH
-        (run :: forall a. Story a -> (a, Set Character))
-        w a a' = ( fst $ run a'
-                 , merge a . merge a' $ w
-                 )
-      where merge = seeks . S.union . snd . run
-    macguffinH w = (Desirable "", w)
 
 appStory :: CoStoryT (Store Int) ()
 appStory = liftCoStory (store (const ()) 0) changeH interruptH macguffinH
@@ -99,8 +105,8 @@ fcata :: Functor f => Algebra f a -> (b -> a) -> Free f b -> a
 fcata alg f (Pure b) = f b
 fcata alg f (Free free) = alg . fmap (fcata alg f) $ free
 
-scata :: Algebra (StoryF 'Applied) a -> (b -> a) -> Story b -> a
-scata alg f = fcata alg f . apply 0
+acata :: Algebra (StoryF 'Applied) a -> (b -> a) -> Story b -> a
+acata alg f = fcata alg f . apply 0
 
 rcata :: Algebra (StoryF 'Reified) a -> a -> Story b -> a
 rcata alg a = fcata alg (const a) . reify a . apply 0
@@ -112,6 +118,9 @@ characters (Change c _ cs) = S.insert c cs
 characters (Interrupt as bs cs) = mconcat [as, bs, cs]
 characters (Macguffin cs) = cs
 
+
+runStoryApp :: Comonad w => StoryApp a -> CoStoryAppT w b -> (a, b)
+runStoryApp = pairEffect (,)
 
 runStory :: Comonad w => Story a -> CoStoryT w b -> (a, b)
 runStory = pairEffect (,)
