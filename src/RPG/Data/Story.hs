@@ -125,12 +125,12 @@ instance Functor (CoStoryF 'Applied) where
         ((fmap . fmap) f i)
         (f m)
 
-type Story = Free (StoryF 'Constructed)
-type StoryApp = Free (StoryF 'Applied)
-type StoryRei = Free (StoryF 'Reified)
-type CoStory = Cofree (CoStoryF 'Constructed)
-type CoStoryApp = Cofree (CoStoryF 'Applied)
-type CoStoryT = CofreeT (CoStoryF 'Constructed)
+type Story       = Free    (StoryF 'Constructed)
+type StoryApp    = Free    (StoryF 'Applied)
+type StoryRei    = Free    (StoryF 'Reified)
+type CoStory     = Cofree  (CoStoryF 'Constructed)
+type CoStoryApp  = Cofree  (CoStoryF 'Applied)
+type CoStoryT    = CofreeT (CoStoryF 'Constructed)
 type CoStoryAppT = CofreeT (CoStoryF 'Applied)
 
 instance Zap (StoryF 'Constructed) (CoStoryF 'Constructed) where

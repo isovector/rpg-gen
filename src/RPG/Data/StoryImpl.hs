@@ -17,8 +17,6 @@ import Control.Comonad.Trans.Cofree
 import Control.Monad (void)
 import Control.Monad.Free
 import Data.Function (fix)
-import Data.Functor.Compose
-import Data.Functor.Identity
 import Data.Pairing
 import Data.Set (Set)
 import RPG.Data.Story
@@ -47,17 +45,6 @@ mkCoStory start changeH interruptH macguffinH =
             (changeH w)
             (interruptH (unsafeCoerce run) w)
             (macguffinH w)
-
--- appStory' :: CoStoryT Identity (Free Some Int)
--- appStory' = mkCoStory (Identity $ Pure 0) changeH interruptH macguffinH
---   where
---     changeH w c ct = (ChangeResult c ct, fmap (>> Free (One $ Pure 0)) w)
---     interruptH
---         (run :: forall a. Story a -> (a, Free Some Int))
---         w x y = let (_, i) = run x
---                     (a, j) = run y
---                  in (a, fmap (>> Free (Two i j)) w)
---     macguffinH w = (Desirable "", fmap (>> Free (One $ Pure 1)) w)
 
 apply :: Story a -> StoryApp a
 apply = (\(_,_,a) -> a) . go 0
@@ -101,6 +88,15 @@ characters (Change c (Feel c' _) cs) = S.insert c $ S.insert c' cs
 characters (Change c _ cs) = S.insert c cs
 characters (Interrupt as bs cs) = mconcat [as, bs, cs]
 characters (Macguffin cs) = cs
+
+injecting :: Monad m => m c -> (a -> m b) -> a -> m b
+injecting mc f a = mc >> return a >>= f
+
+injectAfter :: Story b -> Story a -> Story a
+injectAfter sb (Free (Change c ct k))   = Free . Change c ct   $ injecting sb k
+injectAfter sb (Free (Interrupt x y k)) = Free . Interrupt x y $ injecting sb k
+injectAfter sb (Free (Macguffin k))     = Free . Macguffin     $ injecting sb k
+injectAfter sb (Pure a)                 = sb >> return a
 
 
 runStory :: ( Comonad w
