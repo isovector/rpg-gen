@@ -13,6 +13,7 @@ import Game.Sequoia.Combinators (focusing)
 import Game.Sequoia.Keyboard
 import RPG.Core
 import RPG.Data.Gen.City
+import RPG.Machine
 import RPG.Menu
 import RPG.Player
 import RPG.Scene
@@ -71,8 +72,7 @@ initialize engine = do
         let screen = focusing p $ group [scene, p, group tmp]
         return $ group [screen, Branch items]
 
--- main = play
---     (EngineConfig (640, 480) "rpg-gen")
---     initialize return
-main = putStrLn . show . snd $ runStory dopestory mkCoStory
+main = play
+    (EngineConfig (640, 480) "rpg-gen")
+    initialize return
 
