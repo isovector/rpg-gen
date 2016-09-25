@@ -37,7 +37,10 @@ executable rpg-gen
                        recursion-schemes,
                        SG,
                        comonad,
-                       free
+                       free,
+                       singletons,
+                       exinst,
+                       monad-coroutine
   hs-source-dirs:      src
   default-language:    Haskell2010
   main-is:             Main.hs

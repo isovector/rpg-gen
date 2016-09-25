@@ -18,6 +18,7 @@ extra-deps:
     - probable-0.1.1
     - sdl2-1.2.0
     - frpnow-0.18
+    - exinst-0.1.2
 
 # Override default flag values for local packages and extra-deps
 flags: {}
